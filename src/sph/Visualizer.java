@@ -153,7 +153,7 @@ public class Visualizer extends FrameWork
     public void close() 
     {
         clEnqueueReleaseGLObjects(m_queue, m_oglBuffer0, null, null);
-        clEnqueueReleaseGLObjects(m_queue, m_oglBuffer1, null, null);
+        //clEnqueueReleaseGLObjects(m_queue, m_oglBuffer1, null, null);
         if(m_oglBuffer0 != null)
         {
             clReleaseMemObject(m_oglBuffer0);
@@ -186,24 +186,24 @@ public class Visualizer extends FrameWork
             m_buffer[0].delete();
         }
         
-        m_buffer[0] = GeometryFactory.createParticles(pos, m_currentParams.m_pointSize * 0.1f, 4);
+        m_buffer[0] = GeometryFactory.createParticles(pos, m_currentParams.m_pointSize * 0.9f, 4);
         
         if(m_buffer[1] != null)
         {
             m_buffer[1].delete();
         }
         
-        m_buffer[1] = GeometryFactory.createCube(new float[]{0,0,0},1);
+        m_buffer[1] = GeometryFactory.createCube(new float[] {0,0,0}, 1);
         
         m_oglBuffer0 = clCreateFromGLBuffer(context, CL_MEM_READ_WRITE, m_buffer[0].getInstanceBuffer(0).getId());
-        m_oglBuffer1 = clCreateFromGLBuffer(context, CL_MEM_READ_WRITE, m_buffer[1].getInstanceBuffer(0).getId());
+        //m_oglBuffer1 = clCreateFromGLBuffer(context, CL_MEM_READ_WRITE, m_buffer[1].getInstanceBuffer(0).getId());
         
         CLMem pair[] = new CLMem[2];
         pair[0] = m_oglBuffer0;
         pair[1] = m_oglBuffer1;
         
         clEnqueueAcquireGLObjects(m_queue, m_oglBuffer0, null, null);
-        clEnqueueAcquireGLObjects(m_queue, m_oglBuffer1, null, null);
+        //clEnqueueAcquireGLObjects(m_queue, m_oglBuffer1, null, null);
         
         return pair;
     }
@@ -218,9 +218,11 @@ public class Visualizer extends FrameWork
     {
     	if(m_queue != null) {
     		clEnqueueReleaseGLObjects(m_queue, m_oglBuffer0, null, null);
-        	clEnqueueReleaseGLObjects(m_queue, m_oglBuffer1, null, null);
+        	//clEnqueueReleaseGLObjects(m_queue, m_oglBuffer1, null, null);
     	}
         updateInput();
+        
+        GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT | GL11.GL_STENCIL_BUFFER_BIT);       
         
         GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT | GL11.GL_STENCIL_BUFFER_BIT);       
         GL11.glClearColor(0.1f, 0.1f, 0.1f, 1f);
@@ -233,12 +235,12 @@ public class Visualizer extends FrameWork
         GL11.glPolygonMode(GL11.GL_FRONT_AND_BACK, GL11.GL_FILL);
         setColor(0.5f, 0.5f, 1f, 1f);
         m_buffer[0].draw();
-                
+             
         Display.update();
         
         if(m_queue != null) {
         	clEnqueueAcquireGLObjects(m_queue, m_oglBuffer0, null, null);
-        	clEnqueueAcquireGLObjects(m_queue, m_oglBuffer1, null, null);
+        	//clEnqueueAcquireGLObjects(m_queue, m_oglBuffer1, null, null);
         }
         m_timer.tick();
     }
