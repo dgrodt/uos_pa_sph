@@ -1,0 +1,41 @@
+
+layout (std140) uniform Camera
+{
+    mat4x4 g_view;
+    mat4x4 g_projection;
+    vec4 g_eye;
+};
+
+/*layout (std140) uniform Model
+{
+    mat4x4 g_model;
+}; */
+
+layout (std140) uniform Color
+{
+    vec4 g_color;
+};
+
+const vec3 g_lightPos = vec3(0, 30, 0);
+
+const float g_ambient = 0;
+
+float saturate(float s)
+{
+    return clamp(s, 0, 1);
+}
+
+vec2 getSpecDiffuseCoe(vec3 normal, vec3 eye, vec3 worldPos, vec3 lightPos)
+{
+    vec3 lightToPos = normalize(worldPos - lightPos);
+    
+    vec3 posToEye = normalize(eye - worldPos);
+    
+    vec3 reflectVec = reflect(lightToPos, normal);
+
+    float diffuse = 0.5f + 0.5f * dot(-lightToPos, normal);
+
+    float specular = pow(saturate(dot(reflectVec, posToEye)), 32);
+    
+    return vec2(specular, diffuse);
+}
