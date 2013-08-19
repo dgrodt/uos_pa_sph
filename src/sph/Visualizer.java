@@ -161,8 +161,8 @@ public class Visualizer extends FrameWork
     {
         m_kernel = kernel;
         m_queue = queue;
-        clSetKernelArg(m_kernel, 3, m_currentParams.m_timeStep);
-        clSetKernelArg(m_kernel, 4, m_currentParams.m_softening);
+        clSetKernelArg(m_kernel, 2, m_currentParams.m_timeStep);
+        clSetKernelArg(m_kernel, 3, m_currentParams.m_softening);
     }
     
     public CLMem[] createPositions(float[] pos, CLContext context)

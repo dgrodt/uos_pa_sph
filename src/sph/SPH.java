@@ -3,16 +3,19 @@ package sph;
 import static pa.cl.OpenCL.clBuildProgram;
 import static pa.cl.OpenCL.clCreateCommandQueue;
 import static pa.cl.OpenCL.clCreateContext;
+import static pa.cl.OpenCL.clCreateKernel;
 import static pa.cl.OpenCL.clCreateProgramWithSource;
 import static pa.cl.OpenCL.clFinish;
 import static pa.cl.OpenCL.clReleaseCommandQueue;
 import static pa.cl.OpenCL.clReleaseContext;
 import static pa.cl.OpenCL.clReleaseProgram;
+import static pa.cl.OpenCL.clReleaseKernel;
 
 import org.lwjgl.LWJGLException;
 import org.lwjgl.PointerBuffer;
 import org.lwjgl.opencl.CLCommandQueue;
 import org.lwjgl.opencl.CLContext;
+import org.lwjgl.opencl.CLKernel;
 import org.lwjgl.opencl.CLProgram;
 import org.lwjgl.opengl.Display;
 
@@ -29,6 +32,8 @@ public class SPH
     private CLCommandQueue queue;
     private CLContext context;
     private PointerBuffer gws_BodyCnt = new PointerBuffer(1);
+    
+    private CLKernel sph_calcNewV;
 
     public void init()
     {
@@ -46,10 +51,11 @@ public class SPH
         context = clCreateContext(pair.platform, pair.device, null, Display.getDrawable());
         vis.initGL();
         queue = clCreateCommandQueue(context, pair.device, 0);
-        program = clCreateProgramWithSource(context, IOUtil.readFileContent("kernel/nbody.cl")); //TODO: richtiges programm
+        program = clCreateProgramWithSource(context, IOUtil.readFileContent("kernel/sph.cl")); //TODO: richtiges programm
         clBuildProgram(program, pair.device, "", null);
         
-        //vis.setKernelAndQueue(, queue);        //TODO
+        sph_calcNewV = clCreateKernel(program, "nBody_CalcNewV");
+        vis.setKernelAndQueue(sph_calcNewV, queue);  
         
         //TODO kernel und speicher initialisieren
     }
@@ -73,6 +79,11 @@ public class SPH
         
         //TODO elemente freigeben
         
+        if(sph_calcNewV != null)
+        {
+        	clReleaseKernel(sph_calcNewV);
+            program = null;
+        }
         if(program != null)
         {
             clReleaseProgram(program);
