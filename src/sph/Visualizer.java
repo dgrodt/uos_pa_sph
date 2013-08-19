@@ -223,11 +223,15 @@ public class Visualizer extends FrameWork
         updateInput();
         
         GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT | GL11.GL_STENCIL_BUFFER_BIT);       
-        
+        GL11.glClearColor(0.1f, 0.1f, 0.1f, 1f);
         m_quadProgram.use();
+        GL11.glPolygonMode(GL11.GL_FRONT_AND_BACK, GL11.GL_LINE);
+        setColor(1f, 1f, 1f, 1f);
         m_buffer[1].draw();
         
         m_program.use();
+        GL11.glPolygonMode(GL11.GL_FRONT_AND_BACK, GL11.GL_FILL);
+        setColor(0.5f, 0.5f, 1f, 1f);
         m_buffer[0].draw();
                 
         Display.update();
