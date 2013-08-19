@@ -1,6 +1,6 @@
 
 
-kernel void CalcNewP(
+kernel void sph_CalcNewP(
 global float* body_P,
 global float* body_rho,
 const float rho,
@@ -13,26 +13,26 @@ const float gamma
 	body_P[id] = (pow(body_rho[id]/rho, gamma)-1) * (rho * c * c) / gamma;
 }
 
-kernel void nBody_CalcNewV(
+kernel void sph_CalcNewV(
 global float4* body_Pos,
 global float4* body_V,
+const float DELTA_T,
+const float EPSILON_SQUARED,
 global float* body_P,
 global float* body_rho,
-const float rho,
-const float m,
-const float c,
-const float gamma,
-const float DELTA_T,
-const float EPSILON_SQUARED)
+const float m
+)
 {
+	
 	uint id = get_global_id(0);
+	uint N = get_global_size(0);
 	
 	float pi = 3.14159;
 	float h = 0.1;
 	float4 delta_V = (float4)0;
 	float delta_rho = 0;
 	
-	for (int i = 0; i < 10000; i++) {
+	for (int i = 0; i < N; i++) {
 		float4 gradW = -exp(-dot(body_Pos[id]-body_Pos[i], body_Pos[id]-body_Pos[i])/(h*h)) / (pow(pi,3/2) * pow(h,5)) * (body_Pos[id]-body_Pos[i]);
 		delta_V += (body_P[i]/(body_rho[i] * body_rho[i]) + body_P[i]/(body_rho[id] * body_rho[id])) * gradW;	//gravitation und viskosität
 		delta_rho += dot(body_V[id] - body_V[i], gradW);
@@ -41,7 +41,8 @@ const float EPSILON_SQUARED)
 	delta_rho *= m * DELTA_T;
 
 	body_V[id] += delta_V;
-	body_rho[id] += delta_rho;	
+	body_rho[id] += delta_rho;
+		
 }
 
 
@@ -67,7 +68,7 @@ float4 bodyBodyInteraction(float4 pi, float4 pj, float4 ai, float EPSILON_SQUARE
     return ai;  
 }
 
-kernel void sph_CalcNewV(
+kernel void sph_CalcNewV_old(
 global float4* body_Pos,
 global float4* body_V,
 const float DELTA_T,

@@ -45,12 +45,19 @@ public class SPH
     
     private CLKernel sph_calcNewV;
     private CLKernel sph_calcNewPos;
+    private CLKernel sph_calcNewP;
     private CLMem[] buffers;
     
     private CLMem body_Pos; 
     private CLMem body_V;
+    private CLMem body_P;
+    private CLMem body_rho;
     
-    private final int N = 15360;
+    private final int N = 5000;
+    private final float rho = 1;
+    private final float m = (float)0.0001;
+    private final float c = 100;
+    private final float gamma = 7;
 
     public void init()
     {
@@ -73,6 +80,7 @@ public class SPH
         
         sph_calcNewV = clCreateKernel(program, "sph_CalcNewV");
         sph_calcNewPos = clCreateKernel(program, "sph_CalcNewPos");
+        sph_calcNewP = clCreateKernel(program, "sph_CalcNewP");
         vis.setKernelAndQueue(sph_calcNewV, queue);  
         
         gws_BodyCnt.put(0, N);
@@ -91,8 +99,39 @@ public class SPH
         body_V = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, buffer);   
         body_Pos = buffers[0];
         
+        
+        float P_arr[] = new float[N];
+        
+        buffer = BufferUtils.createFloatBuffer(N);
+        buffer.put(P_arr);
+        buffer.rewind();
+        
+        body_P = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, buffer);
+        
+        float rho_arr[] = new float[N];
+        
+        for (int i = 0; i < rho_arr.length; i++) rho_arr[i] = rho;
+        
+        buffer = BufferUtils.createFloatBuffer(N);
+        buffer.put(rho_arr);
+        buffer.rewind();
+        
+        body_rho = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, buffer);
+        
+        clSetKernelArg(sph_calcNewP, 0, body_P);
+        clSetKernelArg(sph_calcNewP, 1, body_rho);
+        clSetKernelArg(sph_calcNewP, 2, rho);
+        clSetKernelArg(sph_calcNewP, 3, m);
+        clSetKernelArg(sph_calcNewP, 4, c);
+        clSetKernelArg(sph_calcNewP, 5, gamma);
+        
         clSetKernelArg(sph_calcNewV, 0, body_Pos);
         clSetKernelArg(sph_calcNewV, 1, body_V);
+        
+        clSetKernelArg(sph_calcNewV, 4, body_P);
+        clSetKernelArg(sph_calcNewV, 5, body_rho);
+        clSetKernelArg(sph_calcNewV, 6, m);
+         
         
         clSetKernelArg(sph_calcNewPos, 0, body_Pos);
         clSetKernelArg(sph_calcNewPos, 1, body_V);
@@ -106,11 +145,13 @@ public class SPH
         while(!vis.isDone())
         {   
             //TODO simulieren
+        	clEnqueueNDRangeKernel(queue, sph_calcNewP, 1, null, gws_BodyCnt, null, null, null);
         	clEnqueueNDRangeKernel(queue, sph_calcNewV, 1, null, gws_BodyCnt, null, null, null);
             clEnqueueNDRangeKernel(queue, sph_calcNewPos, 1, null, gws_BodyCnt, null, null, null);
             
             clFinish(queue);
             vis.visualize();
+            
         }
         close();
     }
