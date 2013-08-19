@@ -25,6 +25,9 @@ void main()
     
     vec2 cofs = getSpecDiffuseCoe(normal, eye, worldView, lightPos);
     
-    fs_out_color = (cofs.x * vec4(1) + cofs.y * g_color + vec4(1) * g_ambient);
+    fs_out_color = (cofs.x * vec4(0.1) + cofs.y * g_color + vec4(1) * g_ambient);
+    fs_out_color.x = clamp(fs_out_color.x, 0.3, 1);
+    fs_out_color.y = clamp(fs_out_color.y, 0.3, 1);
+    fs_out_color.z = clamp(fs_out_color.z, 0.5, 1);
     fs_out_color.w = 1;
 }
