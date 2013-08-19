@@ -1,12 +1,12 @@
 package main;
 
-import nbody.curve.NBodySimCurve;
+import sph.SPH;
 
 public class Main 
 {
     public static void main(String[] args)
     {
-        NBodySimCurve app = new NBodySimCurve();
+        SPH app = new SPH();
         app.run();
     }
 }
