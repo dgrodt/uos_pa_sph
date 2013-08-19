@@ -75,6 +75,7 @@ public class Visualizer extends FrameWork
     protected Geometry[] m_buffer = new Geometry[2];
     
     protected Program m_program;
+    protected Program m_quadProgram;
     
     protected int m_toggle = 0;
     
@@ -104,7 +105,20 @@ public class Visualizer extends FrameWork
     @Override
     public void init() 
     {
-        m_program = new Program();
+    	m_quadProgram = new Program();
+    	m_quadProgram.create("shader/Quad_VS.glsl", "shader/Quad_FS.glsl");
+    	m_quadProgram.bindAttributeLocation("vs_in_pos", 0);
+    	m_quadProgram.bindAttributeLocation("vs_in_normal", 1);
+    	m_quadProgram.bindAttributeLocation("vs_in_tc", 2);
+    	m_quadProgram.bindAttributeLocation("vs_in_instance", 3);
+    	m_quadProgram.linkAndValidate();
+    	m_quadProgram.bindUniformBlock("Camera", FrameWork.UniformBufferSlots.CAMERA_BUFFER_SLOT);
+    	m_quadProgram.bindUniformBlock("Color", FrameWork.UniformBufferSlots.COLOR_BUFFER_SLOT);
+    	m_quadProgram.use();
+        GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+        GL11.glDisable(GL11.GL_CULL_FACE);
+        
+    	m_program = new Program();
         m_program.create("shader/Particles_VS.glsl", "shader/Particles_FS.glsl");
         m_program.bindAttributeLocation("vs_in_pos", 0);
         m_program.bindAttributeLocation("vs_in_normal", 1);
@@ -113,7 +127,7 @@ public class Visualizer extends FrameWork
         m_program.linkAndValidate();
         m_program.bindUniformBlock("Camera", FrameWork.UniformBufferSlots.CAMERA_BUFFER_SLOT);
         m_program.bindUniformBlock("Color", FrameWork.UniformBufferSlots.COLOR_BUFFER_SLOT);
-        m_program.use();
+
 
         m_invCameraAdress = m_program.getUniformLocation("invCamera");
         
@@ -172,14 +186,14 @@ public class Visualizer extends FrameWork
             m_buffer[0].delete();
         }
         
-        m_buffer[0] = GeometryFactory.createParticles(pos, m_currentParams.m_pointSize * 0.1f, 3);
+        m_buffer[0] = GeometryFactory.createParticles(pos, m_currentParams.m_pointSize * 0.1f, 4);
         
         if(m_buffer[1] != null)
         {
             m_buffer[1].delete();
         }
         
-        m_buffer[1] = GeometryFactory.createParticles(pos, m_currentParams.m_pointSize * 0.1f, 3);
+        m_buffer[1] = GeometryFactory.createCube(new float[]{0,0,0},1);
         
         m_oglBuffer0 = clCreateFromGLBuffer(context, CL_MEM_READ_WRITE, m_buffer[0].getInstanceBuffer(0).getId());
         m_oglBuffer1 = clCreateFromGLBuffer(context, CL_MEM_READ_WRITE, m_buffer[1].getInstanceBuffer(0).getId());
@@ -207,12 +221,15 @@ public class Visualizer extends FrameWork
         	clEnqueueReleaseGLObjects(m_queue, m_oglBuffer1, null, null);
     	}
         updateInput();
+        
         GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT | GL11.GL_STENCIL_BUFFER_BIT);       
         
-        m_toggle = (++m_toggle) % 2;
-        if(m_buffer[m_toggle]!=null){
-        	m_buffer[m_toggle].draw();
-        }
+        m_quadProgram.use();
+        m_buffer[1].draw();
+        
+        m_program.use();
+        m_buffer[0].draw();
+                
         Display.update();
         
         if(m_queue != null) {
@@ -233,7 +250,7 @@ public class Visualizer extends FrameWork
         super.processMouseMoved(x, y, dx, dy);
         if(m_enableCamera && Mouse.isGrabbed())
         {
-            m_program.use();
+           // m_program.use();
             Matrix4f mat = new Matrix4f();
             mat.rotate(m_camera.getPhi(), new Vector3f(0, 1, 0));
             mat.rotate(m_camera.getTheta(), new Vector3f(1, 0, 0));
