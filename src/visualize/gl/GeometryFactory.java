@@ -276,7 +276,31 @@ public class GeometryFactory
     }
     public static Geometry createCube()
     {
-        return createCube(null, 0);
+        Geometry geo = new Geometry();
+        
+        float vertices[] = 
+        {
+        		-0.5f, -0.5f, -0.5f,  0.5f, -0.5f, -0.5f,
+        		-0.5f, -0.5f, -0.5f, -0.5f,  0.5f, -0.5f,
+        		-0.5f,  0.5f, -0.5f,  0.5f,  0.5f, -0.5f,
+        		 0.5f,  0.5f, -0.5f,  0.5f, -0.5f, -0.5f,
+        		-0.5f, -0.5f,  0.5f,  0.5f, -0.5f,  0.5f,
+         		-0.5f, -0.5f,  0.5f, -0.5f,  0.5f,  0.5f,
+         		-0.5f,  0.5f,  0.5f,  0.5f,  0.5f,  0.5f,
+         		 0.5f,  0.5f,  0.5f,  0.5f, -0.5f,  0.5f,
+         		-0.5f,  0.5f, -0.5f, -0.5f,  0.5f,  0.5f,
+         		-0.5f, -0.5f, -0.5f, -0.5f, -0.5f,  0.5f,
+         		 0.5f, -0.5f, -0.5f,  0.5f, -0.5f,  0.5f,
+         		 0.5f,  0.5f, -0.5f,  0.5f,  0.5f,  0.5f,
+        };
+        int indices[] = 
+        {
+        		0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,
+        };
+        geo.create(vertices, GL15.GL_STATIC_DRAW, indices, GL15.GL_STATIC_DRAW, GL11.GL_LINE, 
+        		new VertexPointer(0, 24, 3));
+        
+        return geo;
     }
     
     public static Geometry createParticles(float[] instances, float size, int stride)
