@@ -209,7 +209,8 @@ public class Visualizer extends FrameWork
         updateInput();
         GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT | GL11.GL_STENCIL_BUFFER_BIT);       
         
-        m_toggle = (++m_toggle) % 2;
+//        m_toggle = (++m_toggle) % 2;
+        m_toggle = 0;
         if(m_buffer[m_toggle]!=null){
         	m_buffer[m_toggle].draw();
         }

@@ -1,27 +1,37 @@
 package sph;
 
+import static pa.cl.OpenCL.CL_MEM_COPY_HOST_PTR;
+import static pa.cl.OpenCL.CL_MEM_READ_WRITE;
 import static pa.cl.OpenCL.clBuildProgram;
+import static pa.cl.OpenCL.clCreateBuffer;
 import static pa.cl.OpenCL.clCreateCommandQueue;
 import static pa.cl.OpenCL.clCreateContext;
 import static pa.cl.OpenCL.clCreateKernel;
 import static pa.cl.OpenCL.clCreateProgramWithSource;
+import static pa.cl.OpenCL.clEnqueueNDRangeKernel;
 import static pa.cl.OpenCL.clFinish;
 import static pa.cl.OpenCL.clReleaseCommandQueue;
 import static pa.cl.OpenCL.clReleaseContext;
 import static pa.cl.OpenCL.clReleaseProgram;
 import static pa.cl.OpenCL.clReleaseKernel;
+import static pa.cl.OpenCL.clSetKernelArg;
 
+import java.nio.FloatBuffer;
+
+import org.lwjgl.BufferUtils;
 import org.lwjgl.LWJGLException;
 import org.lwjgl.PointerBuffer;
 import org.lwjgl.opencl.CLCommandQueue;
 import org.lwjgl.opencl.CLContext;
 import org.lwjgl.opencl.CLKernel;
+import org.lwjgl.opencl.CLMem;
 import org.lwjgl.opencl.CLProgram;
 import org.lwjgl.opengl.Display;
 
 import pa.cl.CLUtil;
 import pa.cl.CLUtil.PlatformDevicePair;
 import pa.util.IOUtil;
+import sph.helper.ParticleHelper;
 
 
 public class SPH 
@@ -34,6 +44,13 @@ public class SPH
     private PointerBuffer gws_BodyCnt = new PointerBuffer(1);
     
     private CLKernel sph_calcNewV;
+    private CLKernel sph_calcNewPos;
+    private CLMem[] buffers;
+    
+    private CLMem body_Pos; 
+    private CLMem body_V;
+    
+    private final int N = 15360;
 
     public void init()
     {
@@ -51,12 +68,35 @@ public class SPH
         context = clCreateContext(pair.platform, pair.device, null, Display.getDrawable());
         vis.initGL();
         queue = clCreateCommandQueue(context, pair.device, 0);
-        program = clCreateProgramWithSource(context, IOUtil.readFileContent("kernel/sph.cl")); //TODO: richtiges programm
+        program = clCreateProgramWithSource(context, IOUtil.readFileContent("kernel/sph.cl")); 
         clBuildProgram(program, pair.device, "", null);
         
-        sph_calcNewV = clCreateKernel(program, "nBody_CalcNewV");
+        sph_calcNewV = clCreateKernel(program, "sph_CalcNewV");
+        sph_calcNewPos = clCreateKernel(program, "sph_CalcNewPos");
         vis.setKernelAndQueue(sph_calcNewV, queue);  
         
+        gws_BodyCnt.put(0, N);
+        
+        float p[] = new float[N * 4];
+        float v[] = new float[N * 4];
+        
+        ParticleHelper.createBodys(N, vis, p, v);
+        
+        buffers = vis.createPositions(p, context);
+        
+        FloatBuffer buffer = BufferUtils.createFloatBuffer(N * 4);
+        buffer.put(v);
+        buffer.rewind();
+        
+        body_V = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, buffer);   
+        body_Pos = buffers[0];
+        
+        clSetKernelArg(sph_calcNewV, 0, body_Pos);
+        clSetKernelArg(sph_calcNewV, 1, body_V);
+        
+        clSetKernelArg(sph_calcNewPos, 0, body_Pos);
+        clSetKernelArg(sph_calcNewPos, 1, body_V);
+        clSetKernelArg(sph_calcNewPos, 2, vis.getCurrentParams().m_timeStep);
         //TODO kernel und speicher initialisieren
     }
     
@@ -66,6 +106,8 @@ public class SPH
         while(!vis.isDone())
         {   
             //TODO simulieren
+        	clEnqueueNDRangeKernel(queue, sph_calcNewV, 1, null, gws_BodyCnt, null, null, null);
+            clEnqueueNDRangeKernel(queue, sph_calcNewPos, 1, null, gws_BodyCnt, null, null, null);
             
             clFinish(queue);
             vis.visualize();
