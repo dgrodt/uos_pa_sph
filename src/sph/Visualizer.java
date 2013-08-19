@@ -186,7 +186,7 @@ public class Visualizer extends FrameWork
             m_buffer[0].delete();
         }
         
-        m_buffer[0] = GeometryFactory.createParticles(pos, m_currentParams.m_pointSize * 0.1f, 4);
+        m_buffer[0] = GeometryFactory.createParticles(pos, m_currentParams.m_pointSize * 0.9f, 4);
         
         if(m_buffer[1] != null)
         {
