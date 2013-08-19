@@ -68,7 +68,7 @@ public class Visualizer extends FrameWork
     protected Params m_currentParams = m_demoParams[2];
     
     protected CLKernel m_kernel;
-    protected CLCommandQueue m_queue;
+    protected CLCommandQueue m_queue = null;
     
     protected int m_invCameraAdress;
     
@@ -83,7 +83,7 @@ public class Visualizer extends FrameWork
     
     public Visualizer(int w, int h) 
     {
-        super(w, h, true, true, "N-Body Simulation", false, false);
+        super(w, h, true, true, "SPH Simulation", false, false);
     }
     
     public Params getCurrentParams()
@@ -202,19 +202,23 @@ public class Visualizer extends FrameWork
     @Override
     public void render() 
     {
-        clEnqueueReleaseGLObjects(m_queue, m_oglBuffer0, null, null);
-        clEnqueueReleaseGLObjects(m_queue, m_oglBuffer1, null, null);
-        
+    	if(m_queue != null) {
+    		clEnqueueReleaseGLObjects(m_queue, m_oglBuffer0, null, null);
+        	clEnqueueReleaseGLObjects(m_queue, m_oglBuffer1, null, null);
+    	}
         updateInput();
         GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT | GL11.GL_STENCIL_BUFFER_BIT);       
         
-        m_buffer[m_toggle = (++m_toggle) % 2].draw();
-        
+        m_toggle = (++m_toggle) % 2;
+        if(m_buffer[m_toggle]!=null){
+        	m_buffer[m_toggle].draw();
+        }
         Display.update();
         
-        clEnqueueAcquireGLObjects(m_queue, m_oglBuffer0, null, null);
-        clEnqueueAcquireGLObjects(m_queue, m_oglBuffer1, null, null);
-        
+        if(m_queue != null) {
+        	clEnqueueAcquireGLObjects(m_queue, m_oglBuffer0, null, null);
+        	clEnqueueAcquireGLObjects(m_queue, m_oglBuffer1, null, null);
+        }
         m_timer.tick();
     }
     
