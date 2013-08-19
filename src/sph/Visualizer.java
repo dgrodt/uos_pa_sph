@@ -172,14 +172,14 @@ public class Visualizer extends FrameWork
             m_buffer[0].delete();
         }
         
-        m_buffer[0] = GeometryFactory.createParticles(pos, m_currentParams.m_pointSize * 0.1f, 3);
+        m_buffer[0] = GeometryFactory.createParticles(pos, m_currentParams.m_pointSize * 0.1f, 4);
         
         if(m_buffer[1] != null)
         {
             m_buffer[1].delete();
         }
         
-        m_buffer[1] = GeometryFactory.createParticles(pos, m_currentParams.m_pointSize * 0.1f, 3);
+        m_buffer[1] = GeometryFactory.createParticles(pos, m_currentParams.m_pointSize * 0.1f, 4);
         
         m_oglBuffer0 = clCreateFromGLBuffer(context, CL_MEM_READ_WRITE, m_buffer[0].getInstanceBuffer(0).getId());
         m_oglBuffer1 = clCreateFromGLBuffer(context, CL_MEM_READ_WRITE, m_buffer[1].getInstanceBuffer(0).getId());
