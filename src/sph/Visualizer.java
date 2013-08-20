@@ -78,7 +78,7 @@ public class Visualizer extends FrameWork
     protected Program m_quadProgram;
     
     protected int m_toggle = 0;
-    
+    protected long m_lastTimeSteps = 0;
     protected CLMem m_oglBuffer0;
     protected CLMem m_oglBuffer1;
     
@@ -216,32 +216,35 @@ public class Visualizer extends FrameWork
     @Override
     public void render() 
     {
-    	if(m_queue != null) {
-    		clEnqueueReleaseGLObjects(m_queue, m_oglBuffer0, null, null);
-        	//clEnqueueReleaseGLObjects(m_queue, m_oglBuffer1, null, null);
+    	
+    	m_lastTimeSteps += m_timer.getLastMillis();
+    	if(m_lastTimeSteps > 33) {
+	    	m_lastTimeSteps = 0;
+	    	System.out.println(m_timer.getLastMillis());
+	    	clEnqueueReleaseGLObjects(m_queue, m_oglBuffer0, null, null);
+	       	//clEnqueueReleaseGLObjects(m_queue, m_oglBuffer1, null, null);
+	    	
+	        updateInput();
+	        
+	        GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT | GL11.GL_STENCIL_BUFFER_BIT);       
+	               
+	        GL11.glClearColor(0.1f, 0.1f, 0.1f, 1f);
+	        m_quadProgram.use();
+	        GL11.glPolygonMode(GL11.GL_FRONT_AND_BACK, GL11.GL_LINE);
+	        setColor(1f, 1f, 1f, 1f);
+	        m_buffer[1].draw();
+	        
+	        m_program.use();
+	        GL11.glPolygonMode(GL11.GL_FRONT_AND_BACK, GL11.GL_FILL);
+	        setColor(0.5f, 0.5f, 1f, 1f);
+	        m_buffer[0].draw();
+	             
+	        Display.update();
+	        
+	       
+	       	clEnqueueAcquireGLObjects(m_queue, m_oglBuffer0, null, null);
+	        //clEnqueueAcquireGLObjects(m_queue, m_oglBuffer1, null, null);
     	}
-        updateInput();
-        
-        GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT | GL11.GL_STENCIL_BUFFER_BIT);       
-        
-        GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT | GL11.GL_STENCIL_BUFFER_BIT);       
-        GL11.glClearColor(0.1f, 0.1f, 0.1f, 1f);
-        m_quadProgram.use();
-        GL11.glPolygonMode(GL11.GL_FRONT_AND_BACK, GL11.GL_LINE);
-        setColor(1f, 1f, 1f, 1f);
-        m_buffer[1].draw();
-        
-        m_program.use();
-        GL11.glPolygonMode(GL11.GL_FRONT_AND_BACK, GL11.GL_FILL);
-        setColor(0.5f, 0.5f, 1f, 1f);
-        m_buffer[0].draw();
-             
-        Display.update();
-        
-        if(m_queue != null) {
-        	clEnqueueAcquireGLObjects(m_queue, m_oglBuffer0, null, null);
-        	//clEnqueueAcquireGLObjects(m_queue, m_oglBuffer1, null, null);
-        }
         m_timer.tick();
     }
     
