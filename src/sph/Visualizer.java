@@ -218,9 +218,8 @@ public class Visualizer extends FrameWork
     {
     	
     	m_lastTimeSteps += m_timer.getLastMillis();
-    	if(m_lastTimeSteps > 33) {
+    	//if(m_lastTimeSteps > 33) {
 	    	m_lastTimeSteps = 0;
-	    	System.out.println(m_timer.getLastMillis());
 	    	clEnqueueReleaseGLObjects(m_queue, m_oglBuffer0, null, null);
 	       	//clEnqueueReleaseGLObjects(m_queue, m_oglBuffer1, null, null);
 	    	
@@ -244,7 +243,7 @@ public class Visualizer extends FrameWork
 	       
 	       	clEnqueueAcquireGLObjects(m_queue, m_oglBuffer0, null, null);
 	        //clEnqueueAcquireGLObjects(m_queue, m_oglBuffer1, null, null);
-    	}
+    	//}
         m_timer.tick();
     }
     
