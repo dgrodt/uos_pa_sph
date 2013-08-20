@@ -28,21 +28,57 @@ const float m
 	uint N = get_global_size(0);
 	
 	float pi = 3.14159;
-	float h = 0.1;
+	float h = 0.001;
+	float4 g = (float4)(0,-1000,0,0);
 	float4 delta_V = (float4)0;
 	float delta_rho = 0;
 	
+	/*
 	for (int i = 0; i < N; i++) {
-		float4 gradW = -exp(-dot(body_Pos[id]-body_Pos[i], body_Pos[id]-body_Pos[i])/(h*h)) / (pow(pi,3/2) * pow(h,5)) * (body_Pos[id]-body_Pos[i]);
-		delta_V += (body_P[i]/(body_rho[i] * body_rho[i]) + body_P[i]/(body_rho[id] * body_rho[id])) * gradW;	//gravitation und viskosität
-		delta_rho += dot(body_V[id] - body_V[i], gradW);
+		float4 gradW = -2 * exp(-dot(body_Pos[id]-body_Pos[i], body_Pos[id]-body_Pos[i])/(h*h)) / (pow(pi,3/2) * pow(h,5)) * (body_Pos[id]-body_Pos[i]);
+		delta_V += m * (body_P[i]/(body_rho[i] * body_rho[i]) + body_P[id]/(body_rho[id] * body_rho[id])) * gradW;	//viskosität
+		delta_rho += m * dot(body_V[id] - body_V[i], gradW);
 	}
-	delta_V *= m * DELTA_T;
-	delta_rho *= m * DELTA_T;
+	*/
+	
+	delta_V += g;
+	
+	float4 pos = body_Pos[id];
+	float r[5];
+	float4 b[5];
+	b[0] = (float4)(pos.x, -1, pos.z, 0);
+	b[1] = (float4)(pos.x, pos.y, -1, 0);
+	b[2] = (float4)(pos.x, pos.y, 1, 0);
+	b[3] = (float4)(-1, pos.y, pos.z, 0);
+	b[4] = (float4)(1, pos.y, pos.z, 0);
+	
+	for (int i = 0; i < 5; i++) {
+		r[i] = distance(pos, b[i]);
 
+		if (r[i] < 0.1) {
+			delta_V += (100 * (pown(0.1/r[i], 4) - pown(0.1/r[i], 2)) / (r[i] * r[i])) *  (pos - b[i]);
+		}
+	
+	}
+	/*
+	for (int i = -20; i <= 20; i++) {
+		for (int j = -20; j <= 20; j++) {
+			float4 b = (float4)(i/(float)20, -1, j/(float)20, 0);
+			float4 diff = body_Pos[id] - b;
+			float r = distance(body_Pos[id], b);
+			if (r < 0.1) {
+				delta_V += (100 * (pown(0.1/r, 4) - pown(0.1/r, 2)) / (r * r)) * diff;
+			}
+		}
+	}
+	*/
+	
+	delta_V *= DELTA_T;
+	delta_rho *= DELTA_T;
+	
 	body_V[id] += delta_V;
 	body_rho[id] += delta_rho;
-		
+	
 }
 
 

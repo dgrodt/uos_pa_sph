@@ -71,7 +71,7 @@ public class ParticleHelper
             pos[p++] = point.x * (inner + (outer - inner) * rand() / (float) RAND_MAX);
             pos[p++] = point.y * (inner + (outer - inner) * rand() / (float) RAND_MAX);
             pos[p++] = point.z * (inner + (outer - inner) * rand() / (float) RAND_MAX);
-            pos[p++] = 1.0f;
+            pos[p++] = 0.0f;
 
             x = 0f * (rand() / (float) RAND_MAX * 2 - 1);
             y = 0f * (rand() / (float) RAND_MAX * 2 - 1);

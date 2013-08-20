@@ -31,6 +31,7 @@ import org.lwjgl.opengl.Display;
 import pa.cl.CLUtil;
 import pa.cl.CLUtil.PlatformDevicePair;
 import pa.util.IOUtil;
+import pa.util.math.MathUtil;
 import sph.helper.ParticleHelper;
 
 
@@ -53,9 +54,10 @@ public class SPH
     private CLMem body_P;
     private CLMem body_rho;
     
-    private final int N = 5000;
+    private final int n = 20;
+    private final int N = n*n*n;
     private final float rho = 1;
-    private final float m = (float)0.0001;
+    private final float m = (float)0.0003;
     private final float c = 100;
     private final float gamma = 7;
 
@@ -88,7 +90,26 @@ public class SPH
         float p[] = new float[N * 4];
         float v[] = new float[N * 4];
         
-        ParticleHelper.createBodys(N, vis, p, v);
+        //ParticleHelper.createBodys(N, vis, p, v);
+        
+        for (int i = 0; i < 4 * N; i++) v[i] = 5 - MathUtil.nextFloat(10);
+        for (int i = 0; i < N; i++) v[4 * i+3] = 0;
+
+        int cnt = 0;
+        for (int i = 0; i < n; i++) {
+        	for (int j = 0; j < n; j++) {
+        		for (int k = 0; k < n; k++) {
+        			p[cnt++] = 1.9f * j / (float)n  - 0.85f;
+        			p[cnt++] = 1.9f * i / (float)n - 0.85f;
+        			p[cnt++] = 1.9f * k / (float)n  - 0.85f;
+        			p[cnt++] = 0;
+        			
+        		}
+        	}
+        	
+        }
+ 
+     
         
         buffers = vis.createPositions(p, context);
         
