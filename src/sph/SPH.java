@@ -149,7 +149,7 @@ public class SPH
         	clEnqueueNDRangeKernel(queue, sph_calcNewV, 1, null, gws_BodyCnt, null, null, null);
             clEnqueueNDRangeKernel(queue, sph_calcNewPos, 1, null, gws_BodyCnt, null, null, null);
             
-            clFinish(queue);
+            //clFinish(queue);
             vis.visualize();
             
         }
@@ -162,6 +162,16 @@ public class SPH
         
         //TODO elemente freigeben
         
+        if(sph_calcNewP != null)
+        {
+        	clReleaseKernel(sph_calcNewP);
+            program = null;
+        }
+        if(sph_calcNewPos != null)
+        {
+        	clReleaseKernel(sph_calcNewPos);
+            program = null;
+        }
         if(sph_calcNewV != null)
         {
         	clReleaseKernel(sph_calcNewV);
