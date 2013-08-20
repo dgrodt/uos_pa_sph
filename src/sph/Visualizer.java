@@ -80,7 +80,10 @@ public class Visualizer extends FrameWork
     
     protected Program m_program;
     protected Program m_quadProgram;
+    
     protected int framebuffer_id;
+    protected int depthStencil_id;
+    
     protected int m_toggle = 0;
     protected long m_lastTimeSteps = 0;
     protected CLMem m_oglBuffer0;
@@ -113,8 +116,15 @@ public class Visualizer extends FrameWork
     	framebuffer_id = GL30.glGenFramebuffers();
     	GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, framebuffer_id);
     	
+    	depthStencil_id = GL30.glGenRenderbuffers();
+    	GL30.glBindRenderbuffer(GL30.GL_RENDERBUFFER, depthStencil_id);
+    	GL30.glRenderbufferStorage(GL30.GL_RENDERBUFFER, GL30.GL_DEPTH24_STENCIL8, FrameWork.instance().getWidth(), FrameWork.instance().getHeight());
+    	GL30.glFramebufferRenderbuffer(GL30.GL_FRAMEBUFFER, GL30.GL_DEPTH_STENCIL_ATTACHMENT, GL30.GL_RENDERBUFFER, depthStencil_id);
+    	
     	//Setup texture
-        Texture m_gd = Texture.create2DTexture(GL11.GL_RGBA,GL30.GL_RGBA16F,FrameWork.instance().getWidth(),FrameWork.instance().getHeight(),0,null);
+        Texture m_gd = Texture.create2DTexture(GL11.GL_RGBA, GL30.GL_RGBA16F,FrameWork.instance().getWidth(),FrameWork.instance().getHeight(),0,null);
+        //glTexImage2D(GL_TEXTURE_2D, 0,GL_RGB, 1024, 768, 0,GL_RGB, GL_UNSIGNED_BYTE, 0);
+//        Texture m_gd = Texture.create2DTexture(GL30.GL_DEPTH_COMPONENT32F,GL11.GL_DEPTH_COMPONENT,FrameWork.instance().getWidth(),FrameWork.instance().getHeight(),0,null);
         GLUtil.transformScreenQuad(0, 0, m_gd.getDest().width, m_gd.getDest().height);
         
         //configure Framebuffer
