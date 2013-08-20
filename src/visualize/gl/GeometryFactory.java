@@ -370,15 +370,20 @@ public class GeometryFactory
 
         int indices[] = 
         {
-            3,2,0,1,-1,
-            5,6,4,7,-1,
+            0,1,2,3,0,-1,
+            4,5,6,7,4,-1,
+            0,4,-1,
+            1,5,-1,
+            2,6,-1,
+            3,7,-1,
+            /*5,6,4,7,-1,
             8,10,9,11,-1,
             13,15,12,14,-1,
             17,16,19,18,-1,
-            20,21,22,23,-1
+            20,21,22,23,-1*/
         };
         
-        geo.create(vertices, GL15.GL_STATIC_DRAW, indices, GL15.GL_STATIC_DRAW, GL11.GL_TRIANGLE_STRIP, 
+        geo.create(vertices, GL15.GL_STATIC_DRAW, indices, GL15.GL_STATIC_DRAW, GL11.GL_LINE_STRIP, 
                 new VertexPointer(0, 3, 0), new VertexPointer(1, 3, 12), new VertexPointer(2, 2, 24));
         geo.addInstanceBuffer(instances, 3, 3, GL15.GL_DYNAMIC_DRAW);
         return geo;

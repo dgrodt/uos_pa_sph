@@ -229,7 +229,7 @@ public class Visualizer extends FrameWork
 	               
 	        GL11.glClearColor(0.1f, 0.1f, 0.1f, 1f);
 	        m_quadProgram.use();
-	        GL11.glPolygonMode(GL11.GL_FRONT_AND_BACK, GL11.GL_LINE);
+	        GL11.glPolygonMode(GL11.GL_FRONT_AND_BACK, GL11.GL_FILL);
 	        setColor(1f, 1f, 1f, 1f);
 	        m_buffer[1].draw();
 	        
