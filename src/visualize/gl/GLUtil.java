@@ -100,10 +100,14 @@ public class GLUtil
         //System.out.println(nx + ", " + ny + ", " + nx1 + ", " + ny1);
         float vertices[] = 
             {
-                nx, ny1, 0, 0, 1,
-                nx1, ny1, 0, 1, 1,
-                nx, ny, 0, 0, 0,
-                nx1, ny, 0, 1, 0,
+//                nx, ny1,  0, 1, 0,   //unten rechts
+//                nx1, ny1, 0, 0, 0,  //unten Links
+//                nx, ny,   0, 1, 1,    //oben rechts
+//                nx1, ny,  0, 0, 1,   //oben links
+        	  nx, ny1,  0, 0, 0,   //unten rechts
+              nx1, ny1, 0, 1, 0,  //unten Links
+              nx, ny,   0, 0, 1,    //oben rechts
+              nx1, ny,  0, 1, 1,   //oben links
             };
         m_sQuadFloatbuffer.put(vertices);
         m_sQuadFloatbuffer.position(0);
