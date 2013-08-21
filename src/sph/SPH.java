@@ -47,6 +47,7 @@ public class SPH
     private CLKernel sph_calcNewV;
     private CLKernel sph_calcNewPos;
     private CLKernel sph_calcNewP;
+    private CLKernel sph_calcNewRho;
     private CLMem[] buffers;
     
     private CLMem body_Pos; 
@@ -54,11 +55,12 @@ public class SPH
     private CLMem body_P;
     private CLMem body_rho;
     
-    private final int n = 20;
+    private final int n = 11;
+    private final float vol = 1000000;
     private final int N = n*n*n;
-    private final float rho = 1;
-    private final float m = (float)0.0003;
-    private final float c = 100;
+    private final float rho = 1000f;
+    private final float m = rho / ((float)N*vol);
+    private final float c = 1500f;
     private final float gamma = 7;
 
     public void init()
@@ -83,6 +85,7 @@ public class SPH
         sph_calcNewV = clCreateKernel(program, "sph_CalcNewV");
         sph_calcNewPos = clCreateKernel(program, "sph_CalcNewPos");
         sph_calcNewP = clCreateKernel(program, "sph_CalcNewP");
+        sph_calcNewRho = clCreateKernel(program, "sph_CalcNewRho");
         vis.setKernelAndQueue(sph_calcNewV, queue);  
         
         gws_BodyCnt.put(0, N);
@@ -92,16 +95,16 @@ public class SPH
         
         //ParticleHelper.createBodys(N, vis, p, v);
         
-        for (int i = 0; i < 4 * N; i++) v[i] = 5 - MathUtil.nextFloat(10);
-        for (int i = 0; i < N; i++) v[4 * i+3] = 0;
+        //for (int i = 0; i < 4 * N; i++) v[i] = 5 - MathUtil.nextFloat(10);
+        //for (int i = 0; i < N; i++) v[4 * i+3] = 0;
 
         int cnt = 0;
         for (int i = 0; i < n; i++) {
         	for (int j = 0; j < n; j++) {
         		for (int k = 0; k < n; k++) {
-        			p[cnt++] = 1.9f * j / (float)n  - 0.85f;
-        			p[cnt++] = 1.9f * i / (float)n - 0.85f;
-        			p[cnt++] = 1.9f * k / (float)n  - 0.85f;
+        			p[cnt++] = 0.9f * j / (float)n  - 0.05f + MathUtil.nextFloat(0.01f);
+        			p[cnt++] = 0.9f * i / (float)n - 0.9f + MathUtil.nextFloat(0.01f);
+        			p[cnt++] = 0.9f * k / (float)n  - 0.05f;
         			p[cnt++] = 0;
         			
         		}
@@ -139,6 +142,12 @@ public class SPH
         
         body_rho = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, buffer);
         
+        clSetKernelArg(sph_calcNewRho, 0, body_Pos);
+        clSetKernelArg(sph_calcNewRho, 1, body_rho);
+        clSetKernelArg(sph_calcNewRho, 2, body_V);
+        clSetKernelArg(sph_calcNewRho, 3, vis.getCurrentParams().m_timeStep);
+        clSetKernelArg(sph_calcNewRho, 4, m);
+        
         clSetKernelArg(sph_calcNewP, 0, body_P);
         clSetKernelArg(sph_calcNewP, 1, body_rho);
         clSetKernelArg(sph_calcNewP, 2, rho);
@@ -157,6 +166,8 @@ public class SPH
         clSetKernelArg(sph_calcNewPos, 0, body_Pos);
         clSetKernelArg(sph_calcNewPos, 1, body_V);
         clSetKernelArg(sph_calcNewPos, 2, vis.getCurrentParams().m_timeStep);
+        clSetKernelArg(sph_calcNewPos, 3, body_rho);
+        clSetKernelArg(sph_calcNewPos, 4, m);
         //TODO kernel und speicher initialisieren
     }
     
@@ -166,6 +177,7 @@ public class SPH
         while(!vis.isDone())
         {   
             //TODO simulieren
+        	clEnqueueNDRangeKernel(queue, sph_calcNewRho, 1, null, gws_BodyCnt, null, null, null);
         	clEnqueueNDRangeKernel(queue, sph_calcNewP, 1, null, gws_BodyCnt, null, null, null);
         	clEnqueueNDRangeKernel(queue, sph_calcNewV, 1, null, gws_BodyCnt, null, null, null);
             clEnqueueNDRangeKernel(queue, sph_calcNewPos, 1, null, gws_BodyCnt, null, null, null);
