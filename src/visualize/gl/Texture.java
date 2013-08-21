@@ -26,9 +26,9 @@ public class Texture
         public FloatBuffer data = null;
     }
     
-    private int m_id;
-    private int m_unit;
-    private TextureDescription m_desc;
+    protected int m_id;
+    protected int m_unit;
+    protected TextureDescription m_desc;
 
     public Texture(int unit)
     {
@@ -36,7 +36,7 @@ public class Texture
         m_unit = unit;
     }
     
-    private void bind()
+    public void bind()
     {
         GL11.glBindTexture(m_desc.target, m_id);
     }
@@ -72,6 +72,10 @@ public class Texture
     public int getId()
     {
         return m_id;
+    }
+    public int getUInt()
+    {
+        return m_unit;
     }
     
     public TextureDescription getDest()

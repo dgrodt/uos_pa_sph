@@ -158,7 +158,7 @@ public abstract class FrameWork extends InputAdapter
         
         m_cameraBuffer.bindBufferBase();
         
-        GLUtil.create();
+//        GLUtil.create();
         
         init();
     }

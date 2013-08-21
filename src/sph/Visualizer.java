@@ -20,12 +20,11 @@ import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL15;
 import org.lwjgl.opengl.GL20;
 import org.lwjgl.opengl.GL30;
-import org.lwjgl.opengl.GL32;
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector3f;
 
 import visualize.FrameWork;
-import visualize.gl.GLUtil;
+import visualize.gl.FrameBuffer;
 import visualize.gl.GeometryFactory;
 import visualize.gl.Texture;
 import visualize.gl.GeometryFactory.Geometry;
@@ -81,6 +80,8 @@ public class Visualizer extends FrameWork
     protected Program m_program;
     protected Program m_quadProgram;
     
+    protected FrameBuffer frameBuffer;
+    protected Texture frameTexture;
     protected int framebuffer_id;
     protected int depthStencil_id;
     
@@ -112,32 +113,12 @@ public class Visualizer extends FrameWork
     @Override
     public void init() 
     {
-    	//Setup Frame buffer
-    	framebuffer_id = GL30.glGenFramebuffers();
-    	GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, framebuffer_id);
-    	
-    	depthStencil_id = GL30.glGenRenderbuffers();
-    	GL30.glBindRenderbuffer(GL30.GL_RENDERBUFFER, depthStencil_id);
-    	GL30.glRenderbufferStorage(GL30.GL_RENDERBUFFER, GL30.GL_DEPTH24_STENCIL8, FrameWork.instance().getWidth(), FrameWork.instance().getHeight());
-    	GL30.glFramebufferRenderbuffer(GL30.GL_FRAMEBUFFER, GL30.GL_DEPTH_STENCIL_ATTACHMENT, GL30.GL_RENDERBUFFER, depthStencil_id);
-    	
-    	//Setup texture
-        Texture m_gd = Texture.create2DTexture(GL11.GL_RGBA, GL30.GL_RGBA16F,FrameWork.instance().getWidth(),FrameWork.instance().getHeight(),0,null);
-        //glTexImage2D(GL_TEXTURE_2D, 0,GL_RGB, 1024, 768, 0,GL_RGB, GL_UNSIGNED_BYTE, 0);
-//        Texture m_gd = Texture.create2DTexture(GL30.GL_DEPTH_COMPONENT32F,GL11.GL_DEPTH_COMPONENT,FrameWork.instance().getWidth(),FrameWork.instance().getHeight(),0,null);
-        GLUtil.transformScreenQuad(0, 0, m_gd.getDest().width, m_gd.getDest().height);
+    	//Setup Texture
+    	frameTexture = Texture.create2DTexture(GL11.GL_RGBA, GL30.GL_RGBA16F,FrameWork.instance().getWidth(),FrameWork.instance().getHeight(),0,null);
+    	//Create Frame buffer
+        frameBuffer = FrameBuffer.createFrameBuffer("main", true, frameTexture);        
         
-        //configure Framebuffer
-        GL32.glFramebufferTexture(GL30.GL_FRAMEBUFFER, GL30.GL_COLOR_ATTACHMENT0, m_gd.getId(), 0);
-    	GL20.glDrawBuffers(GL30.GL_COLOR_ATTACHMENT0);
-    	
-    	if(GL30.glCheckFramebufferStatus(GL30.GL_FRAMEBUFFER) != GL30.GL_FRAMEBUFFER_COMPLETE){
-    		System.out.println("etwas ist schief gelaufen!");
-    	}
-    	
-
-        
-        
+        //Setup Particle Program
         m_program = new Program();
         m_program.create("shader/Particles_VS.glsl", "shader/Particles_FS.glsl");
         m_program.bindAttributeLocation("vs_in_pos", 0);
@@ -149,7 +130,7 @@ public class Visualizer extends FrameWork
         m_program.bindUniformBlock("Color", FrameWork.UniformBufferSlots.COLOR_BUFFER_SLOT);
         m_program.use();
 
-        
+        //Setup Box Program
     	m_quadProgram = new Program();
     	m_quadProgram.create("shader/Quad_VS.glsl", "shader/Quad_FS.glsl");
     	m_quadProgram.bindAttributeLocation("vs_in_pos", 0);
@@ -182,11 +163,6 @@ public class Visualizer extends FrameWork
         m_camera.lookAt(new Vector3f(0,0, m_currentParams.m_z), new Vector3f());
         uploadCameraBuffer();
         
-
-//        GLUtil.transformScreenQuad(
-//                getWidth() / 2 - m_gd.getDest().width / 2, 
-//                getHeight() / 2 - m_gd.getDest().height / 2, 
-//                m_gd.getDest().width, m_gd.getDest().height);
     }
 
     @Override
@@ -208,6 +184,7 @@ public class Visualizer extends FrameWork
         m_program.delete();
         m_buffer[0].delete();
         m_buffer[1].delete();
+        frameBuffer.delete();
         destroy();
     }
     
@@ -256,44 +233,29 @@ public class Visualizer extends FrameWork
     @Override
     public void render() 
     {
-    	
-    	m_lastTimeSteps += m_timer.getLastMillis();
-    	
-    	m_lastTimeSteps = 0;
     	clEnqueueReleaseGLObjects(m_queue, m_oglBuffer0, null, null);
        	//clEnqueueReleaseGLObjects(m_queue, m_oglBuffer1, null, null);
     	
         updateInput();
-        
-        GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, framebuffer_id);
-        GL11.glViewport(0,0,1024,768);
-        
-        GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT | GL11.GL_STENCIL_BUFFER_BIT);       
-        GL11.glClearColor(0.1f, 0.1f, 0.1f, 1f);
-  
-//        if(m_timer.getTicks()>200)
-	    {      
-	    	
-	        m_quadProgram.use();
-	        GL11.glPolygonMode(GL11.GL_FRONT_AND_BACK, GL11.GL_FILL);
-	        setColor(1f, 1f, 1f, 1f);
-	        m_buffer[1].draw();
-	        
-	        m_program.use();
-	        GL11.glPolygonMode(GL11.GL_FRONT_AND_BACK, GL11.GL_FILL);
-	        setColor(0.5f, 0.5f, 1f, 1f);
-	        m_buffer[0].draw();
-	        
 
-	    }         
-	    
-        GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, 0);
-        GL11.glViewport(0,0,FrameWork.instance().getWidth(),FrameWork.instance().getHeight());
+        //Bind and Clear Framebuffer
+        frameBuffer.renderToFramebuffer();
         
-	    GLUtil.drawTexture(0);
-	    
+        //Draw Box
+        m_quadProgram.use();
+        setColor(1f, 1f, 1f, 1f);
+        m_buffer[1].draw();
+        
+        //Draw Particles
+        m_program.use();
+        setColor(0.5f, 0.5f, 1f, 1f);
+        m_buffer[0].draw();
+        
+        //Swap back to Backbuffer and Draw Texture
+        frameBuffer.renderToBackbuffer();
+
         Display.update();
-
+        
        	clEnqueueAcquireGLObjects(m_queue, m_oglBuffer0, null, null);
         //clEnqueueAcquireGLObjects(m_queue, m_oglBuffer1, null, null);
         m_timer.tick();
