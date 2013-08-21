@@ -6,7 +6,12 @@ public class Main
 {
     public static void main(String[] args)
     {
-        SPH app = new SPH();
+        SPH app = SPH.getInstance();
+//        SettingsFrame settings = new SettingsFrame();
+//        
+//        
+//        settings.setVisible(true);
         app.run();
+        System.exit(0);
     }
 }

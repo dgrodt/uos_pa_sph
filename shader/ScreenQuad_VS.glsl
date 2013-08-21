@@ -4,6 +4,7 @@ in vec3 vs_in_pos;
 in vec2 vs_in_tc;
 
 out vec2 fs_in_tc;
+
 out vec4 gl_Position;
 
 void main()

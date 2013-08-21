@@ -158,7 +158,7 @@ public abstract class FrameWork extends InputAdapter
         
         m_cameraBuffer.bindBufferBase();
         
-        GLUtil.create();
+//        GLUtil.create();
         
         init();
     }
@@ -370,5 +370,8 @@ public abstract class FrameWork extends InputAdapter
             m_camera.rotate(2*dx * 1e-3f, -2*dy * 1e-3f);
             uploadCameraBuffer();
         }
+    }
+    public void requestClose() {
+    	m_done = true;
     }
 }

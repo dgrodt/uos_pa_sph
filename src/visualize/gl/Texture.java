@@ -17,7 +17,7 @@ public class Texture
     {
         public int internalFormat;
         public int format;
-        public int target;
+        public int target = GL11.GL_TEXTURE_2D;
         public int type = GL11.GL_FLOAT;
         public int width;
         public int height;
@@ -26,17 +26,22 @@ public class Texture
         public FloatBuffer data = null;
     }
     
-    private int m_id;
-    private int m_unit;
-    private TextureDescription m_desc;
+    protected int m_id;
+    protected int m_unit;
+    protected TextureDescription m_desc;
 
     public Texture(int unit)
     {
-        m_id = -1;
+        m_id = GL11.glGenTextures();
         m_unit = unit;
     }
+    public Texture(int uint, TextureDescription desc)
+    {
+    	this(uint);
+    	m_desc = desc;   
+    }
     
-    private void bind()
+    public void bind()
     {
         GL11.glBindTexture(m_desc.target, m_id);
     }
@@ -73,6 +78,10 @@ public class Texture
     {
         return m_id;
     }
+    public int getUInt()
+    {
+        return m_unit;
+    }
     
     public TextureDescription getDest()
     {
@@ -86,8 +95,20 @@ public class Texture
             GL11.glDeleteTextures(m_id);
         }
     }
+    public static Texture createTexture(int uint, TextureDescription desc)
+    {
+    	Texture t = new Texture(uint, desc);
+    	
+        GL11.glTexParameteri(desc.target, GL11.GL_TEXTURE_MIN_FILTER, GL11.GL_NEAREST);
+        GL11.glTexParameteri(desc.target, GL11.GL_TEXTURE_MAG_FILTER, GL11.GL_NEAREST);
+        GL11.glTexParameterf(desc.target, GL11.GL_TEXTURE_WRAP_S, 	  GL11.GL_CLAMP );
+        GL11.glTexParameterf(desc.target, GL11.GL_TEXTURE_WRAP_T,     GL11.GL_CLAMP );
+    	GL11.glTexImage2D(   desc.target, 0, desc.internalFormat, desc.width, desc.height, 0, desc.format, desc.type, desc.data );
+    	checkError();
+    	return t;
+    }
     
-    public static Texture create2DTexture(int format, int internalFormat, int w, int h, int unit, FloatBuffer data)
+    public static Texture create2DTexture(int format, int internalFormat, int type, int w, int h, int unit, FloatBuffer data)
     {
         TextureDescription desc = new TextureDescription();
         desc.target = GL11.GL_TEXTURE_2D;
@@ -104,12 +125,12 @@ public class Texture
     
     public static Texture createRGBA16F2DTexture(int w, int h, int unit, FloatBuffer data)
     {
-        return create2DTexture(GL11.GL_RGBA, GL30.GL_RGBA16F, w, h, unit, data);
+        return create2DTexture(GL11.GL_RGBA, GL30.GL_RGBA16F, GL11.GL_FLOAT, w, h, unit, data);
     }
     
     public static Texture createRGBA2DTexture(int w, int h, int unit, FloatBuffer data)
     {
-        return create2DTexture(GL11.GL_RGBA, GL11.GL_RGBA8, w, h, unit, data);
+        return create2DTexture(GL11.GL_RGBA, GL11.GL_RGBA8,GL11.GL_FLOAT, w, h, unit, data);
     }
     
     public static Texture createRGBAFromX(TextureData data, int unit)
@@ -150,6 +171,19 @@ public class Texture
             case 4: internalFormat = GL11.GL_RGBA8; format = GL11.GL_RGBA; break;
         }
         
-        return create2DTexture(format, internalFormat, td.w, td.h, unit, td.data);
+        return create2DTexture(format, internalFormat,GL11.GL_FLOAT, td.w, td.h, unit, td.data);
+    }
+    
+    public static void checkError()
+    {
+       int error = GL11.glGetError();
+       switch(error)
+       {
+       case GL11.GL_NO_ERROR: return;
+       case GL11.GL_INVALID_ENUM : System.err.println("GL_INVALID_ENUM"); break;
+       case GL11.GL_INVALID_VALUE : System.err.println("GL_INVALID_VALUE"); break;
+       case GL11.GL_INVALID_OPERATION : System.err.println("GL_INVALID_OPERATION"); break;
+       default : System.err.println("Unknown error");
+       }
     }
 }

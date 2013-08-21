@@ -10,8 +10,7 @@ import static pa.cl.OpenCL.clCreateContext;
 import static pa.cl.OpenCL.clCreateKernel;
 import static pa.cl.OpenCL.clCreateProgramWithSource;
 import static pa.cl.OpenCL.clEnqueueNDRangeKernel;
-import static pa.cl.OpenCL.clEnqueueReadBuffer;
-import static pa.cl.OpenCL.clFinish;
+
 import static pa.cl.OpenCL.clReleaseCommandQueue;
 import static pa.cl.OpenCL.clReleaseContext;
 import static pa.cl.OpenCL.clReleaseProgram;
@@ -35,7 +34,6 @@ import pa.cl.CLUtil.PlatformDevicePair;
 import pa.cl.OpenCL;
 import pa.util.IOUtil;
 import pa.util.math.MathUtil;
-import sph.helper.ParticleHelper;
 
 
 public class SPH 
@@ -49,6 +47,7 @@ public class SPH
     private final float c = 1500f;
     private final float gamma = 7;
 
+	private static SPH sph = null;
 	
     private Visualizer vis;
     private PlatformDevicePair pair;
@@ -57,6 +56,9 @@ public class SPH
     private CLContext context;
     private PointerBuffer gws_BodyCnt = new PointerBuffer(1);
     private FloatBuffer float_buffer = BufferUtils.createFloatBuffer(N);
+
+    
+
     private CLKernel sph_calcNewV;
     private CLKernel sph_calcNewPos;
     private CLKernel sph_calcNewP;
@@ -68,8 +70,16 @@ public class SPH
     private CLMem body_P;
     private CLMem body_rho;
     
+    
+    private boolean initialized = false;
+
+
     public void init()
     {
+    	
+    	if (initialized) {
+			return;
+		}
         vis = new Visualizer(1024, 768);
         try 
         {
@@ -199,14 +209,16 @@ public class SPH
         init();
         while(!vis.isDone())
         {   
+        	
+        	if (!vis.isPause()) {
             //TODO simulieren
         	clEnqueueNDRangeKernel(queue, sph_calcNewRho, 1, null, gws_BodyCnt, null, null, null);
         	clEnqueueNDRangeKernel(queue, sph_calcNewP, 1, null, gws_BodyCnt, null, null, null);
         	clEnqueueNDRangeKernel(queue, sph_calcNewV, 1, null, gws_BodyCnt, null, null, null);
             clEnqueueNDRangeKernel(queue, sph_calcNewPos, 1, null, gws_BodyCnt, null, null, null);
-            
+        	}
             vis.visualize();
-            
+        	
         }
         close();
     }
@@ -252,4 +264,54 @@ public class SPH
         
         CLUtil.destroyCL();
     }
+    public static SPH getInstance() {
+		if (sph == null) {
+			sph = new SPH();
+		}
+		return sph;
+	}
+
+	public static void destroy() {
+		if (sph != null) {
+			// System.out.println("destryoing");
+			// Display.destroy();
+			sph.requestClose();
+		}
+		sph = null;
+	}
+
+	public void requestClose() {
+		vis.requestClose();
+	}
+
+	public void set_m(float m) {
+	}
+
+	public float get_m() {
+		return m;
+	}
+
+	public void set_rho(float rho) {
+	}
+
+	public float get_rho() {
+		return rho;
+	}
+
+	public void set_c(float c) {
+	}
+
+	public float get_c() {
+		return c;
+	}
+
+	public void set_gamma(float gamma) {
+	}
+
+	public float get_gamma() {
+		return gamma;
+	}
+	public void setPause(boolean pause) {
+		vis.setPause(pause);
+	}
 }
