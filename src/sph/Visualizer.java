@@ -10,6 +10,7 @@ import static pa.cl.OpenCL.clSetKernelArg;
 import java.nio.FloatBuffer;
 
 import org.lwjgl.BufferUtils;
+import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
 import org.lwjgl.opencl.CLCommandQueue;
 import org.lwjgl.opencl.CLContext;
@@ -89,6 +90,8 @@ public class Visualizer extends FrameWork
     protected long m_lastTimeSteps = 0;
     protected CLMem m_oglBuffer0;
     protected CLMem m_oglBuffer1;
+    
+    private boolean m_pause = false;
     
     public Visualizer(int w, int h) 
     {
@@ -196,39 +199,38 @@ public class Visualizer extends FrameWork
         clSetKernelArg(m_kernel, 3, m_currentParams.m_softening);
     }
     
-    public CLMem[] createPositions(float[] pos, CLContext context)
-    {
-        if(m_buffer[0] != null)
-        {
-            m_buffer[0].delete();
-        }
-        
-        m_buffer[0] = GeometryFactory.createParticles(pos, m_currentParams.m_pointSize * 0.9f, 4);
-        
-        if(m_buffer[1] != null)
-        {
-            m_buffer[1].delete();
-        }
-        
-        m_buffer[1] = GeometryFactory.createCube(new float[] {0,0,0}, 1);
-        
-        m_oglBuffer0 = clCreateFromGLBuffer(context, CL_MEM_READ_WRITE, m_buffer[0].getInstanceBuffer(0).getId());
-        //m_oglBuffer1 = clCreateFromGLBuffer(context, CL_MEM_READ_WRITE, m_buffer[1].getInstanceBuffer(0).getId());
-        
-        CLMem pair[] = new CLMem[2];
-        pair[0] = m_oglBuffer0;
-        pair[1] = m_oglBuffer1;
-        
-        clEnqueueAcquireGLObjects(m_queue, m_oglBuffer0, null, null);
-        //clEnqueueAcquireGLObjects(m_queue, m_oglBuffer1, null, null);
-        
-        return pair;
-    }
-    
-    public void visualize()
-    {
-        render();
-    }
+    public CLMem[] createPositions(float[] pos, CLContext context) {
+		if (m_buffer[0] != null) {
+			m_buffer[0].delete();
+		}
+
+		m_buffer[0] = GeometryFactory.createParticles(pos,
+				m_currentParams.m_pointSize * 0.9f, 4);
+
+		if (m_buffer[1] != null) {
+			m_buffer[1].delete();
+		}
+
+		m_buffer[1] = GeometryFactory.createCube(new float[] { 0, 0, 0 }, 1);
+
+		m_oglBuffer0 = clCreateFromGLBuffer(context, CL_MEM_READ_WRITE,
+				m_buffer[0].getInstanceBuffer(0).getId());
+		// m_oglBuffer1 = clCreateFromGLBuffer(context, CL_MEM_READ_WRITE,
+		// m_buffer[1].getInstanceBuffer(0).getId());
+
+		CLMem pair[] = new CLMem[2];
+		pair[0] = m_oglBuffer0;
+		pair[1] = m_oglBuffer1;
+
+		clEnqueueAcquireGLObjects(m_queue, m_oglBuffer0, null, null);
+		// clEnqueueAcquireGLObjects(m_queue, m_oglBuffer1, null, null);
+
+		return pair;
+	}
+
+	public void visualize() {
+		render();
+	}
 
     @Override
     public void render() 
@@ -282,5 +284,21 @@ public class Visualizer extends FrameWork
             
             GL20.glUniformMatrix4(m_invCameraAdress, false, MATRIX4X4_BUFFER); 
         }
+    }
+    public void processKeyPressed(int key)
+    {
+        super.processKeyPressed(key);
+        if(key == Keyboard.KEY_P)
+        {
+            m_pause = !m_pause;
+        }
+    }
+    
+    public boolean isPause()
+    {
+        return m_pause;
+    }
+    public void setPause(boolean pause) {
+    	m_pause = pause;
     }
 }

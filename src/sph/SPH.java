@@ -34,15 +34,14 @@ import pa.util.IOUtil;
 import pa.util.math.MathUtil;
 import sph.helper.ParticleHelper;
 
-
-public class SPH 
-{
-    private Visualizer vis;
-    private PlatformDevicePair pair;
-    private CLProgram program;
-    private CLCommandQueue queue;
-    private CLContext context;
-    private PointerBuffer gws_BodyCnt = new PointerBuffer(1);
+public class SPH {
+	private static SPH sph = null;
+	private Visualizer vis;
+	private PlatformDevicePair pair;
+	private CLProgram program;
+	private CLCommandQueue queue;
+	private CLContext context;
+	private PointerBuffer gws_BodyCnt = new PointerBuffer(1);
     
     private CLKernel sph_calcNewV;
     private CLKernel sph_calcNewPos;
@@ -62,9 +61,15 @@ public class SPH
     private final float m = rho / ((float)N*vol);
     private final float c = 1500f;
     private final float gamma = 7;
+    
+    private boolean initialized = false;
 
     public void init()
     {
+    	
+    	if (initialized) {
+			return;
+		}
         vis = new Visualizer(1024, 768);
         try 
         {
@@ -176,6 +181,8 @@ public class SPH
         init();
         while(!vis.isDone())
         {   
+        	
+        	if (!vis.isPause()) {
             //TODO simulieren
         	clEnqueueNDRangeKernel(queue, sph_calcNewRho, 1, null, gws_BodyCnt, null, null, null);
         	clEnqueueNDRangeKernel(queue, sph_calcNewP, 1, null, gws_BodyCnt, null, null, null);
@@ -183,8 +190,9 @@ public class SPH
             clEnqueueNDRangeKernel(queue, sph_calcNewPos, 1, null, gws_BodyCnt, null, null, null);
             
             //clFinish(queue);
+        	}
             vis.visualize();
-            
+        	
         }
         close();
     }
@@ -230,4 +238,54 @@ public class SPH
         
         CLUtil.destroyCL();
     }
+    public static SPH getInstance() {
+		if (sph == null) {
+			sph = new SPH();
+		}
+		return sph;
+	}
+
+	public static void destroy() {
+		if (sph != null) {
+			// System.out.println("destryoing");
+			// Display.destroy();
+			sph.requestClose();
+		}
+		sph = null;
+	}
+
+	public void requestClose() {
+		vis.requestClose();
+	}
+
+	public void set_m(float m) {
+	}
+
+	public float get_m() {
+		return m;
+	}
+
+	public void set_rho(float rho) {
+	}
+
+	public float get_rho() {
+		return rho;
+	}
+
+	public void set_c(float c) {
+	}
+
+	public float get_c() {
+		return c;
+	}
+
+	public void set_gamma(float gamma) {
+	}
+
+	public float get_gamma() {
+		return gamma;
+	}
+	public void setPause(boolean pause) {
+		vis.setPause(pause);
+	}
 }

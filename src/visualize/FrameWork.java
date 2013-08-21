@@ -371,4 +371,7 @@ public abstract class FrameWork extends InputAdapter
             uploadCameraBuffer();
         }
     }
+    public void requestClose() {
+    	m_done = true;
+    }
 }
