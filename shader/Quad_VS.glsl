@@ -19,9 +19,7 @@ void main()
     fs_in_normal = vs_in_normal; //g_model
     fs_in_tc = vs_in_tc;
     
-    vec4 vPos = invCamera * vec4(vs_in_pos, 0);
-    
-    fs_in_ViewPos = g_view * vec4(vPos.xyz + vs_in_instance.xyz, 1);
+    fs_in_ViewPos = g_view * vec4(vs_in_pos, 1);
     
     gl_Position =  g_projection * fs_in_ViewPos;
 }

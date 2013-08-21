@@ -29,6 +29,7 @@ import visualize.gl.FrameBuffer;
 import visualize.gl.GeometryFactory;
 import visualize.gl.Texture;
 import visualize.gl.GeometryFactory.Geometry;
+import visualize.gl.Texture.TextureDescription;
 import visualize.gl.Program;
 import visualize.util.Timer;
 
@@ -117,9 +118,12 @@ public class Visualizer extends FrameWork
     public void init() 
     {
     	//Setup Texture
-    	frameTexture = Texture.create2DTexture(GL11.GL_RGBA, GL30.GL_RGBA16F,FrameWork.instance().getWidth(),FrameWork.instance().getHeight(),0,null);
+    	frameTexture = Texture.create2DTexture(GL11.GL_RGBA, GL30.GL_RGBA16F, GL11.GL_FLOAT,FrameWork.instance().getWidth(),FrameWork.instance().getHeight(),0,null);
+    	//frameTexture = Texture.createTexture(0, desc);
+   
+    	Texture depthTexture = Texture.create2DTexture(GL11.GL_RED, GL30.GL_R16F, GL11.GL_FLOAT,FrameWork.instance().getWidth(),FrameWork.instance().getHeight(),1,null);
     	//Create Frame buffer
-        frameBuffer = FrameBuffer.createFrameBuffer("main", true, frameTexture);        
+        frameBuffer = FrameBuffer.createFrameBuffer("main", true, frameTexture, depthTexture);        
         
         //Setup Particle Program
         m_program = new Program();
@@ -133,6 +137,14 @@ public class Visualizer extends FrameWork
         m_program.bindUniformBlock("Color", FrameWork.UniformBufferSlots.COLOR_BUFFER_SLOT);
         m_program.use();
 
+        Matrix4f m = new Matrix4f();
+        m.setIdentity();
+        m.store(MATRIX4X4_BUFFER);
+        MATRIX4X4_BUFFER.flip();
+  
+        m_invCameraAdress = m_program.getUniformLocation("invCamera");
+        GL20.glUniformMatrix4(m_invCameraAdress, false, MATRIX4X4_BUFFER);
+        
         //Setup Box Program
     	m_quadProgram = new Program();
     	m_quadProgram.create("shader/Quad_VS.glsl", "shader/Quad_FS.glsl");
@@ -143,19 +155,12 @@ public class Visualizer extends FrameWork
     	m_quadProgram.linkAndValidate();
     	m_quadProgram.bindUniformBlock("Camera", FrameWork.UniformBufferSlots.CAMERA_BUFFER_SLOT);
     	m_quadProgram.bindUniformBlock("Color", FrameWork.UniformBufferSlots.COLOR_BUFFER_SLOT);
+
     	m_quadProgram.use();
 //        GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
 //        GL11.glDisable(GL11.GL_CULL_FACE);
         
-        m_invCameraAdress = m_program.getUniformLocation("invCamera");
-        
-        Matrix4f m = new Matrix4f();
-        m.setIdentity();
-        m.store(MATRIX4X4_BUFFER);
-        MATRIX4X4_BUFFER.flip();
-  
-        GL20.glUniformMatrix4(m_invCameraAdress, false, MATRIX4X4_BUFFER);
-        
+       
         FloatBuffer data = BufferUtils.createFloatBuffer(4);
         data.put(0.5f); data.put(1); data.put(0); data.put(1);
         data.flip();
@@ -244,6 +249,7 @@ public class Visualizer extends FrameWork
         frameBuffer.renderToFramebuffer();
         
         //Draw Box
+        
         m_quadProgram.use();
         setColor(1f, 1f, 1f, 1f);
         m_buffer[1].draw();
@@ -254,7 +260,7 @@ public class Visualizer extends FrameWork
         m_buffer[0].draw();
         
         //Swap back to Backbuffer and Draw Texture
-        frameBuffer.renderToBackbuffer();
+        frameBuffer.renderToBackbuffer(0);
 
         Display.update();
         
@@ -282,7 +288,8 @@ public class Visualizer extends FrameWork
             mat.store(MATRIX4X4_BUFFER);
             MATRIX4X4_BUFFER.position(0);
             
-            GL20.glUniformMatrix4(m_invCameraAdress, false, MATRIX4X4_BUFFER); 
+            GL20.glUniformMatrix4(m_invCameraAdress, false, MATRIX4X4_BUFFER);
+            
         }
     }
     public void processKeyPressed(int key)

@@ -5,9 +5,11 @@
 in vec2 fs_in_tc;
 in vec3 fs_in_normal;
 in vec4 fs_in_ViewPos;
+in float fs_in_depth;
 
 //out vec4 fs_out_color;
-layout(location = 0) out vec3 fs_out_color;
+layout(location = 0) out vec4 fs_out_color;
+layout(location = 1) out float fs_out_depth;
 void main()
 {
     vec2 tx = 2 * fs_in_tc - 1;
@@ -25,9 +27,11 @@ void main()
     
     vec2 cofs = getSpecDiffuseCoe(normal, eye, worldView, lightPos);
     
-    fs_out_color = (cofs.x * vec4(0.1) + cofs.y * g_color + vec4(1) * g_ambient).xyz;
+    fs_out_color = (cofs.x * vec4(0.1) + cofs.y * g_color + vec4(1) * g_ambient);
     fs_out_color.x = clamp(fs_out_color.x, 0.3, 1);
     fs_out_color.y = clamp(fs_out_color.y, 0.3, 1);
     fs_out_color.z = clamp(fs_out_color.z, 0.5, 1);
-    //fs_out_color.w = 1;
+    fs_out_color.w = 1;
+    
+    fs_out_depth = fs_in_depth;
 }

@@ -42,7 +42,7 @@ public class FrameBuffer {
         FrameBuffer buffer = new FrameBuffer(name, depthStencil, copiedTextures);
         if(!buffer.init()) {
             buffer.delete();
-            System.out.printf("Initialization of FrameBuffer %s failed!", name);
+            System.out.printf("Initialization of FrameBuffer %s failed!\n", name);
             return null;
         }
         return buffer;
@@ -90,7 +90,7 @@ public class FrameBuffer {
             GL32.glFramebufferTexture(GL30.GL_FRAMEBUFFER, GL30.GL_COLOR_ATTACHMENT0 + i, this.textures[i].getId(), 0);
             drawBuffers.put(i, GL30.GL_COLOR_ATTACHMENT0 + i);
             if(!this.checkError()) {
-                System.out.printf("Framebuffer %s texture %d failed.", this.name, i);
+                System.out.printf("Framebuffer %s texture %d failed.\n", this.name, i);
             }                
         }
         GL20.glDrawBuffers(drawBuffers);
@@ -117,9 +117,9 @@ public class FrameBuffer {
 		GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, 0);
 	}
 	
-    public void renderToBackbuffer() {
+    public void renderToBackbuffer(int uint) {
         unbind();
-        drawTexture();
+        drawTexture(uint);
     }
 	
     public void renderToFramebuffer(){
@@ -161,7 +161,7 @@ public class FrameBuffer {
                 errorString = "Unknown status";
                 break;
         }
-        System.out.printf("There is something wrong with framebuffer %s: %s.", this.name, errorString);
+        System.out.printf("There is something wrong with framebuffer %s: %s.\n", this.name, errorString);
         return false;
     }
     
@@ -223,7 +223,6 @@ public class FrameBuffer {
         ny = 1 - 2 * ny;
         nx1 = -1 + 2 * nx1;
         ny1 = 1 - 2 * ny1;
-        //System.out.println(nx + ", " + ny + ", " + nx1 + ", " + ny1);
         float vertices[] = 
             {
         	  nx, ny1,  0, 0, 0,   //unten rechts
