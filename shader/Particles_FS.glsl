@@ -6,10 +6,13 @@ in vec2 fs_in_tc;
 in vec3 fs_in_normal;
 in vec4 fs_in_ViewPos;
 in float fs_in_depth;
+in vec3 fs_in_worldPos;
+
 
 //out vec4 fs_out_color;
 layout(location = 0) out vec4 fs_out_color;
 layout(location = 1) out float fs_out_depth;
+layout(location = 2) out vec3 fs_out_worldPos;
 void main()
 {
     vec2 tx = 2 * fs_in_tc - 1;
@@ -34,4 +37,5 @@ void main()
     fs_out_color.w = 1;
     
     fs_out_depth = fs_in_depth;
+    fs_out_worldPos = fs_in_worldPos;
 }

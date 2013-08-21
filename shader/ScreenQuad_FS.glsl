@@ -7,5 +7,6 @@ out vec4 fs_out_color;
 
 void main()
 {
-	fs_out_color = texture2D(g_quadTexture, fs_in_tc);
+	fs_out_color = texture2D(g_quadTexture, vec2(fs_in_tc.x, 1-fs_in_tc.y));
+	//fs_out_color = texture2D(g_quadTexture, fs_in_tca);
 }

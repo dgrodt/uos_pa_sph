@@ -83,7 +83,7 @@ public class Visualizer extends FrameWork
     protected Program m_quadProgram;
     
     protected FrameBuffer frameBuffer;
-    protected Texture frameTexture;
+    
     protected int framebuffer_id;
     protected int depthStencil_id;
     
@@ -117,13 +117,19 @@ public class Visualizer extends FrameWork
     @Override
     public void init() 
     {
-    	//Setup Texture
-    	frameTexture = Texture.create2DTexture(GL11.GL_RGBA, GL30.GL_RGBA16F, GL11.GL_FLOAT,FrameWork.instance().getWidth(),FrameWork.instance().getHeight(),0,null);
-    	//frameTexture = Texture.createTexture(0, desc);
-   
-    	Texture depthTexture = Texture.create2DTexture(GL11.GL_RED, GL30.GL_R16F, GL11.GL_FLOAT,FrameWork.instance().getWidth(),FrameWork.instance().getHeight(),1,null);
+    	
+    	//Setup Textures
+    	int width = FrameWork.instance().getWidth();
+    	int height = FrameWork.instance().getHeight();
+    	
+    	//First Texture
+    	Texture frameTexture = Texture.create2DTexture(GL11.GL_RGBA, GL30.GL_RGBA16F, GL11.GL_FLOAT, width, height, 0, null);
+    	//Depth Informations
+    	Texture depthTexture = Texture.create2DTexture(GL11.GL_RED,  GL30.GL_R16F,    GL11.GL_FLOAT, width, height, 1, null);
+    	//World Coordinates
+    	Texture worldTexture = Texture.create2DTexture(GL11.GL_RGB, GL30.GL_RGB16F, GL11.GL_FLOAT, width, height, 2, null);
     	//Create Frame buffer
-        frameBuffer = FrameBuffer.createFrameBuffer("main", true, frameTexture, depthTexture);        
+        frameBuffer = FrameBuffer.createFrameBuffer("main", true, frameTexture, depthTexture, worldTexture);        
         
         //Setup Particle Program
         m_program = new Program();
@@ -260,7 +266,7 @@ public class Visualizer extends FrameWork
         m_buffer[0].draw();
         
         //Swap back to Backbuffer and Draw Texture
-        frameBuffer.renderToBackbuffer(0);
+        frameBuffer.renderToBackbuffer(2);
 
         Display.update();
         
