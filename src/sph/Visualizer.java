@@ -96,7 +96,7 @@ public class Visualizer extends FrameWork
     
     public Visualizer(int w, int h) 
     {
-        super(w, h, true, true, "SPH Simulation", false, false);
+        super(w, h, true, true, "", false, false);
     }
     
     public Params getCurrentParams()
@@ -267,6 +267,7 @@ public class Visualizer extends FrameWork
        	clEnqueueAcquireGLObjects(m_queue, m_oglBuffer0, null, null);
         //clEnqueueAcquireGLObjects(m_queue, m_oglBuffer1, null, null);
         m_timer.tick();
+        Display.setTitle("SPH Simulation (FPS: "+m_timer.getFps()+")");
     }
     
     public boolean isDone()
