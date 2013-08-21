@@ -1,5 +1,5 @@
 
-float W (float4 r, float h) {
+float W_ (float4 r, float h) {
 
 	float x = length(r) / h;
 	float k = 2.546479089 / pown(h,3);
@@ -9,7 +9,16 @@ float W (float4 r, float h) {
 	return k * 2 * pown(1-x,3);
 }
 
-float4 gradW (float4 r, float h) {
+float W (float4 r, float h) {
+
+	float x = length(r);
+	float k = 315 / (64 * 3.14159 * pown(h,9));
+	
+	if (x > h) return 0;
+	return k * pown(h*h-x*x,3);
+}
+
+float4 gradW_ (float4 r, float h) {
 
 	float x = length(r) / h;
 	float k = 6 * 2.546479089 / pown(h,4);
@@ -18,6 +27,15 @@ float4 gradW (float4 r, float h) {
 	if (x > 1) return (float4)0;
 	if (x < 0.5) return k * (3 * pown(x,2) - 2 * x) * r_norm;
 	return -k * pown(1-x,2) * r_norm;
+}
+
+float4 gradW (float4 r, float h) {
+
+	float x = length(r);
+	float k = 45 / (3.14159 * pown(h,6));
+	
+	if (x > h) return 0;
+	return k * pown(h-x,3) * r / x;
 }
 
 
@@ -44,7 +62,6 @@ const float m
 	
 	body_rho[id] = rho;
 	
-	
 	/*
 	for (int i = 0; i < N; i++) {
 		
@@ -69,8 +86,9 @@ const float gamma
 )
 {
 	uint id = get_global_id(0);
-	body_P[id] = (pown(body_rho[id]/rho, 7)-1);
-	//body_P[id] = (body_rho[id] - rho) * 1000000;
+	//body_P[id] = pown(body_rho[id], 7);
+	//body_P[id] = (pown(body_rho[id]/rho, 7) -1);
+	body_P[id] = 1000 + (body_rho[id] - rho) * 200000;
 }
 
 kernel void sph_CalcNewV(
@@ -106,10 +124,13 @@ const float m
 					((body_rho[id] + body_rho[i]) * (eta * eta + dot(body_Pos[id]-body_Pos[i], body_Pos[id]-body_Pos[i])));
 		}
 		
+		//visc = 0;
+		
 		float4 r = body_Pos[id]-body_Pos[i];
 		float4 grad = gradW(r, h);
-		float C = (body_P[i]/(body_rho[i] * body_rho[i]) + body_P[id]/(body_rho[id] * body_rho[id]) + visc);
-		if (length(C * grad) < 1000000000) {
+		//float C = (body_P[i]/(body_rho[i] * body_rho[i]) + body_P[id]/(body_rho[id] * body_rho[id]) + visc);
+		float C = (body_P[i] + body_P[id])/(2 * body_rho[i]);
+		if (id!=i) {
 			accel += C * grad;
 		}
 	}
@@ -118,7 +139,7 @@ const float m
 	accel += g;
 
 	//-------------------------------
-	//		boundery forces
+	//		boundary forces
 	//-------------------------------
 	
 	float4 pos = body_Pos[id];
@@ -135,6 +156,7 @@ const float m
 
 		if (r[i] < 0.2) {
 			accel += (10 * (pown(0.2/r[i], 4) - pown(0.2/r[i], 2)) / (r[i] * r[i])) *  (pos - b[i]);
+		//	accel += m * (0.2 - r[i]) * (pos - b[i]) / length(pos - b[i]);
 		}
 	
 	}

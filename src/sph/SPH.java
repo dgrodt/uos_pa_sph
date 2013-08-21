@@ -1,5 +1,6 @@
 package sph;
 
+import static pa.cl.OpenCL.CL_FALSE;
 import static pa.cl.OpenCL.CL_MEM_COPY_HOST_PTR;
 import static pa.cl.OpenCL.CL_MEM_READ_WRITE;
 import static pa.cl.OpenCL.clBuildProgram;
@@ -9,6 +10,7 @@ import static pa.cl.OpenCL.clCreateContext;
 import static pa.cl.OpenCL.clCreateKernel;
 import static pa.cl.OpenCL.clCreateProgramWithSource;
 import static pa.cl.OpenCL.clEnqueueNDRangeKernel;
+import static pa.cl.OpenCL.clEnqueueReadBuffer;
 import static pa.cl.OpenCL.clFinish;
 import static pa.cl.OpenCL.clReleaseCommandQueue;
 import static pa.cl.OpenCL.clReleaseContext;
@@ -30,6 +32,7 @@ import org.lwjgl.opengl.Display;
 
 import pa.cl.CLUtil;
 import pa.cl.CLUtil.PlatformDevicePair;
+import pa.cl.OpenCL;
 import pa.util.IOUtil;
 import pa.util.math.MathUtil;
 import sph.helper.ParticleHelper;
@@ -37,13 +40,23 @@ import sph.helper.ParticleHelper;
 
 public class SPH 
 {
+
+    private final int n = 16;
+    private final float vol = 1000000;
+    private final int N = n*n*n;
+    private float rho =  0;//1000;
+    private final float m = 1000 / ((float)N*vol);
+    private final float c = 1500f;
+    private final float gamma = 7;
+
+	
     private Visualizer vis;
     private PlatformDevicePair pair;
     private CLProgram program;
     private CLCommandQueue queue;
     private CLContext context;
     private PointerBuffer gws_BodyCnt = new PointerBuffer(1);
-    
+    private FloatBuffer float_buffer = BufferUtils.createFloatBuffer(N);
     private CLKernel sph_calcNewV;
     private CLKernel sph_calcNewPos;
     private CLKernel sph_calcNewP;
@@ -55,14 +68,6 @@ public class SPH
     private CLMem body_P;
     private CLMem body_rho;
     
-    private final int n = 11;
-    private final float vol = 1000000;
-    private final int N = n*n*n;
-    private final float rho = 1000f;
-    private final float m = rho / ((float)N*vol);
-    private final float c = 1500f;
-    private final float gamma = 7;
-
     public void init()
     {
         vis = new Visualizer(1024, 768);
@@ -141,12 +146,30 @@ public class SPH
         buffer.rewind();
         
         body_rho = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, buffer);
-        
+
         clSetKernelArg(sph_calcNewRho, 0, body_Pos);
         clSetKernelArg(sph_calcNewRho, 1, body_rho);
         clSetKernelArg(sph_calcNewRho, 2, body_V);
         clSetKernelArg(sph_calcNewRho, 3, vis.getCurrentParams().m_timeStep);
         clSetKernelArg(sph_calcNewRho, 4, m);
+        
+        //----------------------------------------
+        //		calculate initial density
+        //----------------------------------------
+        clEnqueueNDRangeKernel(queue, sph_calcNewRho, 1, null, gws_BodyCnt, null, null, null);   
+        OpenCL.clEnqueueReadBuffer(queue, body_rho, CL_FALSE, 0, float_buffer, null, null);
+
+        for (int i = 0; i < N; i++) {
+        	rho += float_buffer.get(i);
+        	System.out.print(float_buffer.get(i) + " ");	
+        }
+        
+        rho /= N;
+        //rho = 5f;
+        System.out.print(rho);
+        
+        //----------------------------------------
+
         
         clSetKernelArg(sph_calcNewP, 0, body_P);
         clSetKernelArg(sph_calcNewP, 1, body_rho);
@@ -182,7 +205,6 @@ public class SPH
         	clEnqueueNDRangeKernel(queue, sph_calcNewV, 1, null, gws_BodyCnt, null, null, null);
             clEnqueueNDRangeKernel(queue, sph_calcNewPos, 1, null, gws_BodyCnt, null, null, null);
             
-            //clFinish(queue);
             vis.visualize();
             
         }
