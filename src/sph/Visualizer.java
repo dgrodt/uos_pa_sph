@@ -265,7 +265,7 @@ public class Visualizer extends FrameWork
         m_buffer[0].draw();
         
         //Swap back to Backbuffer and Draw Texture
-        frameBuffer.renderToBackbuffer(1);
+        frameBuffer.renderToBackbuffer(0);
 
         Display.update();
         
