@@ -1,6 +1,7 @@
 #define BUFFER_SIZE_SIDE 32
 #define BUFFER_SIZE_DEPTH 64
-#define OFFSET 5
+#define OFFSET 2
+
 float W (float4 r, float h) {
 
 	float x = length(r);
@@ -33,18 +34,32 @@ float4 gradWV (float4 r, float h) {
 kernel void sph_CalcNewRho(
 global float4* body_Pos,
 global float* body_rho,
-const float m
+const float m,
+global uint* data
 )
 {
 	uint id = get_global_id(0);
 	uint N = get_global_size(0);
 	float h = 0.2;
-	
+
 	float rhoByM = 0;
 	
-	for (int i = 0; i < N; i++) {
+	//for (int i = 0; i < N; i++) {
+	int4 gridPos = convert_int4((BUFFER_SIZE_SIDE - 1) * (body_Pos[id] + (float4)1) / 2);
+	
+	for (int l = max(gridPos.x - OFFSET, 0); l <= min(gridPos.x + OFFSET, BUFFER_SIZE_SIDE - 1) ; l++) {
+	for (int j = max(gridPos.y - OFFSET, 0); j <= min(gridPos.y + OFFSET, BUFFER_SIZE_SIDE - 1) ; j++) {
+	for (int k = max(gridPos.z - OFFSET, 0); k <= min(gridPos.z + OFFSET, BUFFER_SIZE_SIDE - 1) ; k++) {
+
+	 	int cnt_ind = BUFFER_SIZE_DEPTH * (l + BUFFER_SIZE_SIDE * j + BUFFER_SIZE_SIDE * BUFFER_SIZE_SIDE * k);
+		uint cnt = data[cnt_ind];
+		for (int o = 1; o <= cnt; o++) {
 		
-		rhoByM += W(body_Pos[id]-body_Pos[i], h);
+			int i = data[cnt_ind + o];
+			rhoByM += W(body_Pos[id]-body_Pos[i], h);
+		}
+	}
+	}
 	}
 	
 	body_rho[id] = m * rhoByM;
@@ -128,7 +143,6 @@ global uint* data
 
 	 	int cnt_ind = BUFFER_SIZE_DEPTH * (l + BUFFER_SIZE_SIDE * j + BUFFER_SIZE_SIDE * BUFFER_SIZE_SIDE * k);
 		uint cnt = data[cnt_ind];
-
 		for (int o = 1; o <= cnt; o++) {
 		
 			int i = data[cnt_ind + o];
@@ -150,7 +164,7 @@ global uint* data
 	}
 	}
 	}
-
+	
 	//--------------------------------------
 	//		calculate boundary forces
 	//--------------------------------------
@@ -167,8 +181,8 @@ global uint* data
 	for (int i = 0; i < 5; i++) {
 		r[i] = distance(pos, b[i]);
 
-		if (r[i] < 0.1) {
-			a_W += (0.1 - r[i]) * (pos - b[i]) / (length(pos - b[i]) * pown(DELTA_T,2));
+		if (r[i] < 0.05) {
+			a_W += (0.05 - r[i]) * (pos - b[i]) / (length(pos - b[i]) * pown(DELTA_T,2));
 		}
 	
 	}
@@ -190,10 +204,9 @@ global uint* data
 		}
 	}	
 	
-	
 	a_T = tau * nabla_n * n[id];
-
 	*/
+	
 
 	body_V[id] += (a_V + a_P + a_W + g + a_T) * DELTA_T;
 }
@@ -221,5 +234,6 @@ global uint* data
     int cnt_ind = BUFFER_SIZE_DEPTH * (gridPos.x + BUFFER_SIZE_SIDE * gridPos.y + BUFFER_SIZE_SIDE * BUFFER_SIZE_SIDE * gridPos.z);
     int cnt = atomic_inc(&data[cnt_ind]) + 1;
     data[cnt_ind + cnt] = id;
+    
     
 }
