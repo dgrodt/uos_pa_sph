@@ -18,10 +18,12 @@ import static pa.cl.OpenCL.clReleaseKernel;
 import static pa.cl.OpenCL.clSetKernelArg;
 
 import java.nio.FloatBuffer;
+import java.nio.IntBuffer;
 
 import org.lwjgl.BufferUtils;
 import org.lwjgl.LWJGLException;
 import org.lwjgl.PointerBuffer;
+import org.lwjgl.opencl.CL11;
 import org.lwjgl.opencl.CLCommandQueue;
 import org.lwjgl.opencl.CLContext;
 import org.lwjgl.opencl.CLKernel;
@@ -32,6 +34,7 @@ import org.lwjgl.opengl.Display;
 import pa.cl.CLUtil;
 import pa.cl.CLUtil.PlatformDevicePair;
 import pa.cl.OpenCL;
+import pa.util.BufferHelper;
 import pa.util.IOUtil;
 import pa.util.math.MathUtil;
 
@@ -39,8 +42,9 @@ import pa.util.math.MathUtil;
 public class SPH 
 {
 
-    private final int n = 14;
+    private final int n = 15;
     private final float vol = 1000000;
+    private final int[] dataBufferSize = {32,32,32,64};
     private final int N = n*n*n;
     private float rho =  0.003f;
     private final float m = 5000 / ((float)N*vol);
@@ -55,8 +59,9 @@ public class SPH
     private CLCommandQueue queue;
     private CLContext context;
     private PointerBuffer gws_BodyCnt = new PointerBuffer(1);
+    private PointerBuffer gws_CellCnt = new PointerBuffer(1);
     private FloatBuffer float_buffer = BufferUtils.createFloatBuffer(N);
-
+//    private IntBuffer int_buffer = BufferUtils.createIntBuffer(dataBufferSize[0]*dataBufferSize[1]*dataBufferSize[2]*dataBufferSize[3]);
     
 
     private CLKernel sph_calcNewV;
@@ -64,8 +69,11 @@ public class SPH
     private CLKernel sph_calcNewP;
     private CLKernel sph_calcNewRho;
     private CLKernel sph_calcNewN;
+    private CLKernel sph_resetData;
     
     private CLMem[] buffers;
+    
+    private CLMem clDataStructure;
     
     private CLMem body_Pos; 
     private CLMem body_V;
@@ -105,9 +113,14 @@ public class SPH
         sph_calcNewP = clCreateKernel(program, "sph_CalcNewP");
         sph_calcNewRho = clCreateKernel(program, "sph_CalcNewRho");
         sph_calcNewN = clCreateKernel(program, "sph_CalcNewN");
+        sph_resetData = clCreateKernel(program, "sph_resetData");
         vis.setKernelAndQueue(sph_calcNewV, queue);  
         
         gws_BodyCnt.put(0, N);
+        gws_CellCnt.put(0, dataBufferSize[0] * dataBufferSize[1] * dataBufferSize[2]);
+        
+
+        
         
         float p[] = new float[N * 4];
         float v[] = new float[N * 4];
@@ -116,17 +129,17 @@ public class SPH
         for (int i = 0; i < n; i++) {
         	for (int j = 0; j < n; j++) {
         		for (int k = 0; k < n; k++) {
-        			p[cnt++] = 0.07f * j  - 0.1f;// + MathUtil.nextFloat(0.01f);
-        			p[cnt++] = 0.07f * i - 0.9f;// + MathUtil.nextFloat(0.01f);
-        			p[cnt++] = 0.07f * k  - 0.1f;
+        			p[cnt++] = (0.07f * j  - 0.5f);// + MathUtil.nextFloat(0.01f);
+        			p[cnt++] = (0.07f * i -  0.9f);// + MathUtil.nextFloat(0.01f);
+        			p[cnt++] = (0.07f * k  - 0.5f);
         			p[cnt++] = 0;
-        			
         		}
         	}
-        	
         }
  
-     
+        IntBuffer dataStructure = BufferUtils.createIntBuffer(dataBufferSize[0] * dataBufferSize[1] * dataBufferSize[2] * dataBufferSize[3]);
+       
+        clDataStructure = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, dataStructure);
         
         buffers = vis.createPositions(p, context);
         
@@ -163,6 +176,8 @@ public class SPH
         
         body_n = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, buffer);
         
+        clSetKernelArg(sph_resetData, 0, clDataStructure);
+        
         clSetKernelArg(sph_calcNewRho, 0, body_Pos);
         clSetKernelArg(sph_calcNewRho, 1, body_rho);
         clSetKernelArg(sph_calcNewRho, 2, m);
@@ -175,16 +190,22 @@ public class SPH
         clSetKernelArg(sph_calcNewP, 1, body_rho);
         clSetKernelArg(sph_calcNewP, 2, rho);
         
+
         clSetKernelArg(sph_calcNewV, 0, body_Pos);
         clSetKernelArg(sph_calcNewV, 1, body_V);
         clSetKernelArg(sph_calcNewV, 3, body_P);
         clSetKernelArg(sph_calcNewV, 4, body_rho);
         clSetKernelArg(sph_calcNewV, 5, body_n);
         clSetKernelArg(sph_calcNewV, 6, m);
+        clSetKernelArg(sph_calcNewV, 7, clDataStructure);
         
         clSetKernelArg(sph_calcNewPos, 0, body_Pos);
         clSetKernelArg(sph_calcNewPos, 1, body_V);
         clSetKernelArg(sph_calcNewPos, 2, vis.getCurrentParams().m_timeStep);
+        clSetKernelArg(sph_calcNewPos, 3, clDataStructure);
+
+		clEnqueueNDRangeKernel(queue, sph_calcNewPos, 1, null, gws_BodyCnt, null, null, null);
+
     }
     
     public void run()
@@ -194,11 +215,21 @@ public class SPH
         {   
         	
         	if (!vis.isPause()) {
+
         	clEnqueueNDRangeKernel(queue, sph_calcNewRho, 1, null, gws_BodyCnt, null, null, null);
         	clEnqueueNDRangeKernel(queue, sph_calcNewP, 1, null, gws_BodyCnt, null, null, null);
-        	//clEnqueueNDRangeKernel(queue, sph_calcNewN, 1, null, gws_BodyCnt, null, null, null);
+        	clEnqueueNDRangeKernel(queue, sph_calcNewN, 1, null, gws_BodyCnt, null, null, null);
         	clEnqueueNDRangeKernel(queue, sph_calcNewV, 1, null, gws_BodyCnt, null, null, null);
+//           	OpenCL.clEnqueueReadBuffer(queue, floatbuff, CL_FALSE, 0, float_buffer, null, null);
+//        	BufferHelper.printBuffer(float_buffer, N);	
+        	clEnqueueNDRangeKernel(queue, sph_resetData, 1, null, gws_CellCnt, null, null, null);
+//        	OpenCL.clEnqueueReadBuffer(queue, clDataStructure, CL_FALSE, 0, int_buffer, null, null);
+//        	BufferHelper.printBuffer(int_buffer, 8*8*8*10);
+
+        	
             clEnqueueNDRangeKernel(queue, sph_calcNewPos, 1, null, gws_BodyCnt, null, null, null);
+            
+            
         	}
             vis.visualize();
         	
