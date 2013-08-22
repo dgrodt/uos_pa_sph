@@ -39,11 +39,11 @@ import pa.util.math.MathUtil;
 public class SPH 
 {
 
-    private final int n = 16;
+    private final int n = 14;
     private final float vol = 1000000;
     private final int N = n*n*n;
-    private float rho =  0;//1000;
-    private final float m = 1000 / ((float)N*vol);
+    private float rho =  0.003f;
+    private final float m = 5000 / ((float)N*vol);
     private final float c = 1500f;
     private final float gamma = 7;
 
@@ -63,12 +63,15 @@ public class SPH
     private CLKernel sph_calcNewPos;
     private CLKernel sph_calcNewP;
     private CLKernel sph_calcNewRho;
+    private CLKernel sph_calcNewN;
+    
     private CLMem[] buffers;
     
     private CLMem body_Pos; 
     private CLMem body_V;
     private CLMem body_P;
     private CLMem body_rho;
+    private CLMem body_n;
     
     
     private boolean initialized = false;
@@ -101,6 +104,7 @@ public class SPH
         sph_calcNewPos = clCreateKernel(program, "sph_CalcNewPos");
         sph_calcNewP = clCreateKernel(program, "sph_CalcNewP");
         sph_calcNewRho = clCreateKernel(program, "sph_CalcNewRho");
+        sph_calcNewN = clCreateKernel(program, "sph_CalcNewN");
         vis.setKernelAndQueue(sph_calcNewV, queue);  
         
         gws_BodyCnt.put(0, N);
@@ -108,18 +112,13 @@ public class SPH
         float p[] = new float[N * 4];
         float v[] = new float[N * 4];
         
-        //ParticleHelper.createBodys(N, vis, p, v);
-        
-        //for (int i = 0; i < 4 * N; i++) v[i] = 5 - MathUtil.nextFloat(10);
-        //for (int i = 0; i < N; i++) v[4 * i+3] = 0;
-
         int cnt = 0;
         for (int i = 0; i < n; i++) {
         	for (int j = 0; j < n; j++) {
         		for (int k = 0; k < n; k++) {
-        			p[cnt++] = 0.9f * j / (float)n  - 0.05f + MathUtil.nextFloat(0.01f);
-        			p[cnt++] = 0.9f * i / (float)n - 0.9f + MathUtil.nextFloat(0.01f);
-        			p[cnt++] = 0.9f * k / (float)n  - 0.05f;
+        			p[cnt++] = 0.07f * j  - 0.1f;// + MathUtil.nextFloat(0.01f);
+        			p[cnt++] = 0.07f * i - 0.9f;// + MathUtil.nextFloat(0.01f);
+        			p[cnt++] = 0.07f * k  - 0.1f;
         			p[cnt++] = 0;
         			
         		}
@@ -131,13 +130,12 @@ public class SPH
         
         buffers = vis.createPositions(p, context);
         
-        FloatBuffer buffer = BufferUtils.createFloatBuffer(N * 4);
+        FloatBuffer buffer = BufferUtils.createFloatBuffer(4 * N);
         buffer.put(v);
         buffer.rewind();
         
         body_V = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, buffer);   
         body_Pos = buffers[0];
-        
         
         float P_arr[] = new float[N];
         
@@ -157,51 +155,36 @@ public class SPH
         
         body_rho = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, buffer);
 
+        float n_arr[] = new float[4 * N];
+        
+        buffer = BufferUtils.createFloatBuffer(N);
+        buffer.put(rho_arr);
+        buffer.rewind();
+        
+        body_n = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, buffer);
+        
         clSetKernelArg(sph_calcNewRho, 0, body_Pos);
         clSetKernelArg(sph_calcNewRho, 1, body_rho);
-        clSetKernelArg(sph_calcNewRho, 2, body_V);
-        clSetKernelArg(sph_calcNewRho, 3, vis.getCurrentParams().m_timeStep);
-        clSetKernelArg(sph_calcNewRho, 4, m);
+        clSetKernelArg(sph_calcNewRho, 2, m);
         
-        //----------------------------------------
-        //		calculate initial density
-        //----------------------------------------
-        clEnqueueNDRangeKernel(queue, sph_calcNewRho, 1, null, gws_BodyCnt, null, null, null);   
-        OpenCL.clEnqueueReadBuffer(queue, body_rho, CL_FALSE, 0, float_buffer, null, null);
-
-        for (int i = 0; i < N; i++) {
-        	rho += float_buffer.get(i);
-        	System.out.print(float_buffer.get(i) + " ");	
-        }
-        
-        rho /= N;
-        //rho = 5f;
-        System.out.print(rho);
-        
-        //----------------------------------------
-
+        clSetKernelArg(sph_calcNewN, 0, body_Pos);
+        clSetKernelArg(sph_calcNewN, 1, body_rho);
+        clSetKernelArg(sph_calcNewN, 2, body_n);
         
         clSetKernelArg(sph_calcNewP, 0, body_P);
         clSetKernelArg(sph_calcNewP, 1, body_rho);
         clSetKernelArg(sph_calcNewP, 2, rho);
-        clSetKernelArg(sph_calcNewP, 3, m);
-        clSetKernelArg(sph_calcNewP, 4, c);
-        clSetKernelArg(sph_calcNewP, 5, gamma);
         
         clSetKernelArg(sph_calcNewV, 0, body_Pos);
         clSetKernelArg(sph_calcNewV, 1, body_V);
-        
-        clSetKernelArg(sph_calcNewV, 4, body_P);
-        clSetKernelArg(sph_calcNewV, 5, body_rho);
+        clSetKernelArg(sph_calcNewV, 3, body_P);
+        clSetKernelArg(sph_calcNewV, 4, body_rho);
+        clSetKernelArg(sph_calcNewV, 5, body_n);
         clSetKernelArg(sph_calcNewV, 6, m);
-         
         
         clSetKernelArg(sph_calcNewPos, 0, body_Pos);
         clSetKernelArg(sph_calcNewPos, 1, body_V);
         clSetKernelArg(sph_calcNewPos, 2, vis.getCurrentParams().m_timeStep);
-        clSetKernelArg(sph_calcNewPos, 3, body_rho);
-        clSetKernelArg(sph_calcNewPos, 4, m);
-        //TODO kernel und speicher initialisieren
     }
     
     public void run()
@@ -211,9 +194,9 @@ public class SPH
         {   
         	
         	if (!vis.isPause()) {
-            //TODO simulieren
         	clEnqueueNDRangeKernel(queue, sph_calcNewRho, 1, null, gws_BodyCnt, null, null, null);
         	clEnqueueNDRangeKernel(queue, sph_calcNewP, 1, null, gws_BodyCnt, null, null, null);
+        	//clEnqueueNDRangeKernel(queue, sph_calcNewN, 1, null, gws_BodyCnt, null, null, null);
         	clEnqueueNDRangeKernel(queue, sph_calcNewV, 1, null, gws_BodyCnt, null, null, null);
             clEnqueueNDRangeKernel(queue, sph_calcNewPos, 1, null, gws_BodyCnt, null, null, null);
         	}
@@ -226,8 +209,6 @@ public class SPH
     public void close()
     {
         vis.close();
-        
-        //TODO elemente freigeben
         
         if(sph_calcNewP != null)
         {

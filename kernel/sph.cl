@@ -1,14 +1,4 @@
 
-float W_ (float4 r, float h) {
-
-	float x = length(r) / h;
-	float k = 2.546479089 / pown(h,3);
-	
-	if (x > 1) return 0;
-	if (x < 0.5) return k * (6 * (pown(x,3) - pown(x,2)) + 1);
-	return k * 2 * pown(1-x,3);
-}
-
 float W (float4 r, float h) {
 
 	float x = length(r);
@@ -18,16 +8,6 @@ float W (float4 r, float h) {
 	return k * pown(h*h-x*x,3);
 }
 
-float4 gradW_ (float4 r, float h) {
-
-	float x = length(r) / h;
-	float k = 6 * 2.546479089 / pown(h,4);
-	float4 r_norm = r / length(r);
-	
-	if (x > 1) return (float4)0;
-	if (x < 0.5) return k * (3 * pown(x,2) - 2 * x) * r_norm;
-	return -k * pown(1-x,2) * r_norm;
-}
 
 float4 gradW (float4 r, float h) {
 
@@ -38,66 +18,84 @@ float4 gradW (float4 r, float h) {
 	return k * pown(h-x,3) * r / x;
 }
 
+float4 gradWV (float4 r, float h) {
+
+	float x = length(r);
+	float k = 45 / (3.14159 * pown(h,6));
+	
+	if (x > h) return 0;
+	return k * (h-x);
+}
+
 
 kernel void sph_CalcNewRho(
 global float4* body_Pos,
 global float* body_rho,
-global float4* body_V,
-const float DELTA_T,
 const float m
 )
 {
 	uint id = get_global_id(0);
 	uint N = get_global_size(0);
 	float h = 0.2;
-	float delta_rho = 0;
 	
-	
-	float rho = 0;
+	float rhoByM = 0;
 	
 	for (int i = 0; i < N; i++) {
 		
-		rho += m * W(body_Pos[id]-body_Pos[i], h);
+		rhoByM += W(body_Pos[id]-body_Pos[i], h);
 	}
 	
-	body_rho[id] = rho;
-	
-	/*
-	for (int i = 0; i < N; i++) {
-		
-		if (id != i)
-		delta_rho += dot(body_V[id]-body_V[i], gradW(body_Pos[id]-body_Pos[i], h));
-	}
-	
-	delta_rho *= m;
-	delta_rho *= DELTA_T;
-	body_rho[id] += delta_rho;
-	*/
+	body_rho[id] = m * rhoByM;
 }
 
 
 kernel void sph_CalcNewP(
 global float* body_P,
 global float* body_rho,
-const float rho,
-const float m,
-const float c,
-const float gamma
+const float rho
 )
 {
 	uint id = get_global_id(0);
-	//body_P[id] = pown(body_rho[id], 7);
-	//body_P[id] = (pown(body_rho[id]/rho, 7) -1);
-	body_P[id] = 1000 + (body_rho[id] - rho) * 200000;
+	body_P[id] = (pown(body_rho[id]/rho, 7) -1) /300;
+	//body_P[id] = 0 + (body_rho[id] - rho) * 20;
 }
+
+
+kernel void sph_CalcNewN(
+global float4* body_Pos,
+global float* body_rho,
+global float4* n
+)
+{
+	uint id = get_global_id(0);
+	uint N = get_global_size(0);
+	float h = 0.35;
+	float4 new_n = (float4)0;
+	
+	for (int i = 0; i < N; i++) {
+
+		float4 r = body_Pos[id]-body_Pos[i];
+		
+		if (i!=id)
+			new_n += gradW(r, h) / body_rho[i];
+	}
+	
+	if (length(new_n) > 10) {
+		n[id] = new_n;
+	}
+	else {
+		n[id] = (float4)0;
+	}
+}
+
 
 kernel void sph_CalcNewV(
 global float4* body_Pos,
 global float4* body_V,
 const float DELTA_T,
-const float EPSILON_SQUARED,
 global float* body_P,
 global float* body_rho,
+global float4* n,
 const float m
 )
 {
@@ -106,41 +104,37 @@ const float m
 	uint N = get_global_size(0);
 	
 	float h = 0.2;
-	float alpha = 1;
-	float eta = 0.001;
-	float c = 10;
-	float4 g = (float4)(0,-1000,0,0);
-	float4 accel = (float4)0;
+	float nu = 0.000001;
+	float tau = 0;
+	float4 g = (float4)(0,-10000,0,0);
+	float4 a_P = (float4)0;
+	float4 a_V = (float4)0;
+	float4 a_W = (float4)0;
+	float4 a_T = (float4)0;
 	
+	
+	//--------------------------------------
+	//		calculate pressure forces
+	//--------------------------------------
 	
 	for (int i = 0; i < N; i++) {
 
-		float visc = 0;
-		
-		
-		float tmp = dot(body_V[id]-body_V[i], body_Pos[id]-body_Pos[i]);
-		if (tmp > 0) {
-			visc = - 2 * alpha * h * c * tmp / 
-					((body_rho[id] + body_rho[i]) * (eta * eta + dot(body_Pos[id]-body_Pos[i], body_Pos[id]-body_Pos[i])));
-		}
-		
-		//visc = 0;
-		
 		float4 r = body_Pos[id]-body_Pos[i];
+		
+		a_V += -nu * (body_V[id] - body_V[i]) * gradWV(r, h) / body_rho[i];
+		
 		float4 grad = gradW(r, h);
-		//float C = (body_P[i]/(body_rho[i] * body_rho[i]) + body_P[id]/(body_rho[id] * body_rho[id]) + visc);
+		//float C = body_P[i]/(pown(body_rho[i],2)) + body_P[id]/(pown(body_rho[id],2));
 		float C = (body_P[i] + body_P[id])/(2 * body_rho[i]);
 		if (id!=i) {
-			accel += C * grad;
+			a_P += C * grad;
 		}
 	}
 
-	accel *= m;
-	accel += g;
 
-	//-------------------------------
-	//		boundary forces
-	//-------------------------------
+	//--------------------------------------
+	//		calculate boundary forces
+	//--------------------------------------
 	
 	float4 pos = body_Pos[id];
 	float r[5];
@@ -154,25 +148,42 @@ const float m
 	for (int i = 0; i < 5; i++) {
 		r[i] = distance(pos, b[i]);
 
-		if (r[i] < 0.2) {
-			accel += (10 * (pown(0.2/r[i], 4) - pown(0.2/r[i], 2)) / (r[i] * r[i])) *  (pos - b[i]);
-		//	accel += m * (0.2 - r[i]) * (pos - b[i]) / length(pos - b[i]);
+		if (r[i] < 0.1) {
+			a_W += (0.1 - r[i]) * (pos - b[i]) / (length(pos - b[i]) * pown(DELTA_T,2));
 		}
 	
 	}
 	
-	//-------------------------------
+	//--------------------------------------
+	//		calculate tension forces
+	//--------------------------------------
 	
-	body_V[id] += accel * DELTA_T;
+	/*
+	float nabla_n = 0;
+	
+	for (int i = 0; i < N; i++) {
+
+		float4 r = body_Pos[id]-body_Pos[i];
+		
+		if (length(n[i]) > 0) {
+			if (i!=id)
+				nabla_n +=  dot(n[i]/length(n[i]), gradW(r, 0.2)) / body_rho[i];
+		}
+	}	
+	
+	
+	a_T = tau * nabla_n * n[id];
+
+	*/
+
+	body_V[id] += (a_V + a_P + a_W + g + a_T) * DELTA_T;
 }
 
 
 kernel void sph_CalcNewPos(
 global float4* body_Pos, 
 global float4* body_V,
-const float DELTA_T,
-global float* body_rho,
-const float m
+const float DELTA_T
 )
 {
     uint id = get_global_id(0);
