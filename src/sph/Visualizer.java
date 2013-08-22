@@ -269,6 +269,7 @@ public class Visualizer extends FrameWork
 
         Display.update();
         
+        
        	clEnqueueAcquireGLObjects(m_queue, m_oglBuffer0, null, null);
         //clEnqueueAcquireGLObjects(m_queue, m_oglBuffer1, null, null);
         m_timer.tick();
