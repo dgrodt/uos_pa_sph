@@ -14,7 +14,7 @@ out vec3 fs_in_normal;
 out vec4 gl_Position;
 out vec4 fs_in_ViewPos;
 out float fs_in_depth;
-
+out vec3 fs_in_worldPos;
 void main()
 {
     fs_in_normal = vs_in_normal; //g_model
@@ -28,6 +28,6 @@ void main()
     gl_Position =  g_projection * fs_in_ViewPos;
     
     fs_in_depth = fs_in_ViewPos.z;
-    
+    fs_in_worldPos = vs_in_instance.xyz;
     //fs_in_depth = (gl_Position / gl_Position.w).z;
 }

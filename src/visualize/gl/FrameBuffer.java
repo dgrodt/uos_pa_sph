@@ -103,9 +103,8 @@ public class FrameBuffer {
 		frameBufferProgram.linkAndValidate();
         m_sLocation = frameBufferProgram.getUniformLocation("g_quadTexture");
         dynamicScreenSquad = GeometryFactory.createDynamicScreenQuad();
-        transformScreenQuad(0, 0, this.textures[0].getDest().width, this.textures[0].getDest().height);
-        
-        
+//        transformScreenQuad(0, 0, this.textures[0].getDest().width, this.textures[0].getDest().height);
+     
         return this.checkError();
 	}
 	
@@ -206,38 +205,6 @@ public class FrameBuffer {
         GL20.glUniform1i(m_sLocation, unit);
         dynamicScreenSquad.draw();
         checkError();
-    }
-    
-    public Geometry transformScreenQuad(int x, int y, int w, int h)
-    {
-        VertexBuffer vb = dynamicScreenSquad.getVertexBuffer();
-        quadByteBuffer.position(0);
-        quadByteBuffer = GL15.glMapBuffer(vb.getTarget(), GL15.GL_WRITE_ONLY, quadByteBuffer);
-        
-        float nx = x / (float)FrameWork.instance().getWidth();
-        float ny = y / (float)FrameWork.instance().getHeight();
-        float nx1 = nx + w / (float)FrameWork.instance().getWidth();
-        float ny1 = ny + h / (float)FrameWork.instance().getHeight();
-        
-        nx = -1 + 2 * nx;
-        ny = 1 - 2 * ny;
-        nx1 = -1 + 2 * nx1;
-        ny1 = 1 - 2 * ny1;
-        float vertices[] = 
-            {
-        	  nx, ny1,  0, 0, 0,   //unten rechts
-              nx1, ny1, 0, 1, 0,  //unten Links
-              nx, ny,   0, 0, 1,    //oben rechts
-              nx1, ny,  0, 1, 1,   //oben links
-            };
-        quadFloatbuffer.put(vertices);
-        quadFloatbuffer.position(0);
-        quadByteBuffer.position(0);
-        transformFloatToByte(quadFloatbuffer, quadByteBuffer);
-        
-        GL15.glUnmapBuffer(vb.getTarget());
-        
-        return dynamicScreenSquad;
     }
     
     public void transformFloatToByte(FloatBuffer b0, ByteBuffer b1)
