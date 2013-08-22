@@ -7,6 +7,7 @@ import static pa.cl.OpenCL.clEnqueueReleaseGLObjects;
 import static pa.cl.OpenCL.clReleaseMemObject;
 import static pa.cl.OpenCL.clSetKernelArg;
 
+import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 
 import org.lwjgl.BufferUtils;
@@ -18,6 +19,8 @@ import org.lwjgl.opencl.CLKernel;
 import org.lwjgl.opencl.CLMem;
 import org.lwjgl.opengl.Display;
 import org.lwjgl.opengl.GL11;
+import org.lwjgl.opengl.GL12;
+import org.lwjgl.opengl.GL13;
 import org.lwjgl.opengl.GL15;
 import org.lwjgl.opengl.GL20;
 import org.lwjgl.opengl.GL30;
@@ -26,6 +29,7 @@ import org.lwjgl.util.vector.Vector3f;
 
 import visualize.FrameWork;
 import visualize.gl.FrameBuffer;
+import visualize.gl.GLUtil;
 import visualize.gl.GeometryFactory;
 import visualize.gl.Texture;
 import visualize.gl.GeometryFactory.Geometry;
@@ -121,6 +125,7 @@ public class Visualizer extends FrameWork
     	//Setup Textures
     	int width = FrameWork.instance().getWidth();
     	int height = FrameWork.instance().getHeight();
+
     	
     	//First Texture
     	Texture frameTexture = Texture.create2DTexture(GL11.GL_RGBA, GL30.GL_RGBA16F, GL11.GL_FLOAT, width, height, 0, null);
@@ -245,11 +250,14 @@ public class Visualizer extends FrameWork
     @Override
     public void render() 
     {
+    	
+
+    	GLUtil.checkError();
+
     	clEnqueueReleaseGLObjects(m_queue, m_oglBuffer0, null, null);
        	//clEnqueueReleaseGLObjects(m_queue, m_oglBuffer1, null, null);
-    	
+    	   	
         updateInput();
-
         //Bind and Clear Framebuffer
         frameBuffer.renderToFramebuffer();
         
@@ -266,13 +274,15 @@ public class Visualizer extends FrameWork
         
         //Swap back to Backbuffer and Draw Texture
         frameBuffer.renderToBackbuffer(0);
-
+ 
         Display.update();
         
        	clEnqueueAcquireGLObjects(m_queue, m_oglBuffer0, null, null);
         //clEnqueueAcquireGLObjects(m_queue, m_oglBuffer1, null, null);
+        
         m_timer.tick();
         Display.setTitle("SPH Simulation (FPS: "+m_timer.getFps()+")");
+       
     }
     
     public boolean isDone()

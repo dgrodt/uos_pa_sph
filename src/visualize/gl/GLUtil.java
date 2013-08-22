@@ -5,8 +5,11 @@ import java.nio.FloatBuffer;
 
 import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11;
+import org.lwjgl.opengl.GL12;
+import org.lwjgl.opengl.GL13;
 import org.lwjgl.opengl.GL15;
 import org.lwjgl.opengl.GL20;
+import org.lwjgl.opengl.GL30;
 
 import visualize.FrameWork;
 import visualize.gl.Buffer.VertexBuffer;
@@ -69,6 +72,7 @@ public class GLUtil
        case GL11.GL_INVALID_ENUM : System.err.println("GL_INVALID_ENUM"); break;
        case GL11.GL_INVALID_VALUE : System.err.println("GL_INVALID_VALUE"); break;
        case GL11.GL_INVALID_OPERATION : System.err.println("GL_INVALID_OPERATION"); break;
+       
        default : System.err.println("Unknown error");
        }
     }
