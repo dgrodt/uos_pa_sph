@@ -19,18 +19,18 @@ void main()
     ivec2 sizeOfTexture = textureSize(g_quadTexture, 0);
     vec2 texelSize = vec2(1.0 / float(sizeOfTexture.x), 1.0 / float(sizeOfTexture.y));
     vec4 result = vec4(0.0, 0.0, 0.0, 0.0);
-    vec4 own = texture2D(g_quadTexture, fs_in_tc);
+    vec4 own = texture2D(g_quadTexture, vec2(fs_in_tc.x, 1-fs_in_tc.y));
     for(int y=0; y < KERNEL_SIZE; ++y)
     {
         for(int x=0; x < KERNEL_SIZE; ++x)
         {
             int offsetX = x - (KERNEL_SIZE / 2);
             int offsetY = y - (KERNEL_SIZE / 2);
-            vec2 tex = fs_in_tc + texelSize * vec2(offsetX, offsetY);
+            vec2 tex = vec2(fs_in_tc.x, 1-fs_in_tc.y) + texelSize * vec2(offsetX, offsetY);
             vec4 sampled = texture2D(g_quadTexture, tex);
             result += F * g_pKernel[y * KERNEL_SIZE + x] * sampled;
         }
     }
     fs_out_color = result;
-    //fs_out_color = texture2D(g_quadTexture, fs_in_tc);
+    //fs_out_color = texture2D(g_quadTexture, vec2(fs_in_tc.x, 1-fs_in_tc.y));
 }
