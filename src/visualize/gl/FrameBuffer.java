@@ -3,6 +3,7 @@ package visualize.gl;
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
+import java.util.LinkedList;
 
 import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11;
@@ -58,6 +59,8 @@ public class FrameBuffer {
 	private Program frameBufferProgram;
 	private Geometry dynamicScreenSquad;
     private int m_sLocation = -1;
+    private LinkedList<Integer> uniformTexturesIDs = new LinkedList<Integer>();
+    private LinkedList<Integer> uniformTexturesUnits = new LinkedList<Integer>();
     private final FloatBuffer quadFloatbuffer = BufferUtils.createFloatBuffer(20);
     private ByteBuffer quadByteBuffer = BufferUtils.createByteBuffer(20 * 4);
     
@@ -203,6 +206,9 @@ public class FrameBuffer {
     {
     	frameBufferProgram.use();
         GL20.glUniform1i(m_sLocation, unit);
+        for(int i = 0; i < uniformTexturesIDs.size() && i < uniformTexturesUnits.size(); ++i) {
+        	GL20.glUniform1i(uniformTexturesIDs.get(i), uniformTexturesUnits.get(i));
+        }
         dynamicScreenSquad.draw();
         checkError();
     }
@@ -214,5 +220,11 @@ public class FrameBuffer {
             b1.putFloat(b0.get(i));
         }
         b1.position(0);
+    }
+    
+    public void addUniformTexture(String variableName, int unit) {
+    	int variableID = frameBufferProgram.getUniformLocation(variableName);
+    	uniformTexturesIDs.add(variableID);
+    	uniformTexturesUnits.add(unit);
     }
 }
