@@ -125,11 +125,11 @@ public class Visualizer extends FrameWork
     	//First Texture
     	Texture frameTexture = Texture.create2DTexture(GL11.GL_RGBA, GL30.GL_RGBA16F, GL11.GL_FLOAT, width, height, 0, null);
     	//Depth Informations
-    	//Texture depthTexture = Texture.create2DTexture(GL11.GL_RED,  GL30.GL_R16F,    GL11.GL_FLOAT, width, height, 1, null);
+    	Texture depthTexture = Texture.create2DTexture(GL11.GL_RED,  GL30.GL_R16F,    GL11.GL_FLOAT, width, height, 1, null);
     	//World Coordinates
-    	//Texture worldTexture = Texture.create2DTexture(GL11.GL_RGB, GL30.GL_RGB16F, GL11.GL_FLOAT, width, height, 2, null);
+    	Texture worldTexture = Texture.create2DTexture(GL11.GL_RGB,  GL30.GL_RGB16F,  GL11.GL_FLOAT, width, height, 2, null);
     	//Create Frame buffer
-        frameBuffer = FrameBuffer.createFrameBuffer("main", true, frameTexture);//, depthTexture, worldTexture);        
+        frameBuffer = FrameBuffer.createFrameBuffer("main", true, frameTexture, depthTexture, worldTexture);        
         
         //Setup Particle Program
         m_program = new Program();
