@@ -96,7 +96,7 @@ public class Visualizer extends FrameWork
     
     public Visualizer(int w, int h) 
     {
-        super(w, h, true, true, "", false, false);
+        super(w, h, true, false, "", false, false);
     }
     
     public Params getCurrentParams()
@@ -125,11 +125,11 @@ public class Visualizer extends FrameWork
     	//First Texture
     	Texture frameTexture = Texture.create2DTexture(GL11.GL_RGBA, GL30.GL_RGBA16F, GL11.GL_FLOAT, width, height, 0, null);
     	//Depth Informations
-    	Texture depthTexture = Texture.create2DTexture(GL11.GL_RED,  GL30.GL_R16F,    GL11.GL_FLOAT, width, height, 1, null);
+    	//Texture depthTexture = Texture.create2DTexture(GL11.GL_RED,  GL30.GL_R16F,    GL11.GL_FLOAT, width, height, 1, null);
     	//World Coordinates
-    	Texture worldTexture = Texture.create2DTexture(GL11.GL_RGB, GL30.GL_RGB16F, GL11.GL_FLOAT, width, height, 2, null);
+    	//Texture worldTexture = Texture.create2DTexture(GL11.GL_RGB, GL30.GL_RGB16F, GL11.GL_FLOAT, width, height, 2, null);
     	//Create Frame buffer
-        frameBuffer = FrameBuffer.createFrameBuffer("main", true, frameTexture, depthTexture, worldTexture);        
+        frameBuffer = FrameBuffer.createFrameBuffer("main", true, frameTexture);//, depthTexture, worldTexture);        
         
         //Setup Particle Program
         m_program = new Program();
@@ -142,7 +142,9 @@ public class Visualizer extends FrameWork
         m_program.bindUniformBlock("Camera", FrameWork.UniformBufferSlots.CAMERA_BUFFER_SLOT);
         m_program.bindUniformBlock("Color", FrameWork.UniformBufferSlots.COLOR_BUFFER_SLOT);
         m_program.use();
-
+    	GL11.glEnable(GL11.GL_BLEND);
+    	GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+        GL11.glDisable(GL11.GL_CULL_FACE);
         Matrix4f m = new Matrix4f();
         m.setIdentity();
         m.store(MATRIX4X4_BUFFER);
@@ -163,9 +165,7 @@ public class Visualizer extends FrameWork
     	m_quadProgram.bindUniformBlock("Color", FrameWork.UniformBufferSlots.COLOR_BUFFER_SLOT);
 
     	m_quadProgram.use();
-//        GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-//        GL11.glDisable(GL11.GL_CULL_FACE);
-        
+
        
         FloatBuffer data = BufferUtils.createFloatBuffer(4);
         data.put(0.5f); data.put(1); data.put(0); data.put(1);
@@ -254,14 +254,13 @@ public class Visualizer extends FrameWork
         frameBuffer.renderToFramebuffer();
         
         //Draw Box
-        
         m_quadProgram.use();
         setColor(1f, 1f, 1f, 1f);
         m_buffer[1].draw();
         
         //Draw Particles
         m_program.use();
-        setColor(0.5f, 0.5f, 1f, 1f);
+        setColor(0.5f, 0.5f, 1f, 0.8f);
         m_buffer[0].draw();
         
         //Swap back to Backbuffer and Draw Texture

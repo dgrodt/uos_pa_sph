@@ -322,7 +322,7 @@ public abstract class FrameWork extends InputAdapter
             case Keyboard.KEY_C : move.y = -1; break;
             case Keyboard.KEY_SPACE : move.y = 1; break;
             }
-            float scale = 0.5f * m_timer.getLastNanos() * 1e-7f;
+            float scale = 0.1f * m_timer.getLastNanos() * 1e-7f;
             m_camera.move(new Vector3f(move.x * scale, move.y * scale, move.z * scale));
             uploadCameraBuffer();
         }
