@@ -141,7 +141,7 @@ public abstract class FrameWork extends InputAdapter
         m_keys = new boolean[Keyboard.getKeyCount()];
         m_mouseBtns = new boolean[Mouse.getButtonCount()];
         
-        Display.setVSyncEnabled(m_vsync);
+        //Display.setVSyncEnabled(m_vsync);
         
         m_camera = new Camera(m_w, m_h);
         m_camera.lookAt(new Vector3f(0,0,-10), new Vector3f(0,0,0)); 
@@ -322,7 +322,7 @@ public abstract class FrameWork extends InputAdapter
             case Keyboard.KEY_C : move.y = -1; break;
             case Keyboard.KEY_SPACE : move.y = 1; break;
             }
-            float scale = 0.5f * m_timer.getLastNanos() * 1e-7f;
+            float scale = 0.1f * m_timer.getLastNanos() * 1e-7f;
             m_camera.move(new Vector3f(move.x * scale, move.y * scale, move.z * scale));
             uploadCameraBuffer();
         }
