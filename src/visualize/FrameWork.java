@@ -141,7 +141,7 @@ public abstract class FrameWork extends InputAdapter
         m_keys = new boolean[Keyboard.getKeyCount()];
         m_mouseBtns = new boolean[Mouse.getButtonCount()];
         
-        Display.setVSyncEnabled(m_vsync);
+        //Display.setVSyncEnabled(m_vsync);
         
         m_camera = new Camera(m_w, m_h);
         m_camera.lookAt(new Vector3f(0,0,-10), new Vector3f(0,0,0)); 
