@@ -1,12 +1,12 @@
-#define BUFFER_SIZE_SIDE 24
+#define BUFFER_SIZE_SIDE 32
 #define BUFFER_SIZE_DEPTH 64
 #define OFFSET 1
 
 float W (float4 r, float h) {
 
 	float x = length(r);
-	//float k = 315 / (64 * 3.14159 * pown(h,9));
-	float k = 3059924.7;
+	float k = 315 / (64 * 3.14159 * pown(h,9));
+	//float k = 3059924.7;
 	
 	if (x > h) return 0;
 	return k * pown(h*h-x*x,3);
@@ -16,8 +16,8 @@ float W (float4 r, float h) {
 float4 gradW (float4 r, float h) {
 
 	float x = length(r);
-	//float k = 45 / (3.14159 * pown(h,6));
-	float k = 223811.6;
+	float k = 45 / (3.14159 * pown(h,6));
+	//float k = 223811.6;
 	
 	if (x > h) return 0;
 	return k * pown(h-x,3) * r / x;
@@ -26,8 +26,8 @@ float4 gradW (float4 r, float h) {
 float4 gradWV (float4 r, float h) {
 
 	float x = length(r);
-	//float k = 45 / (3.14159 * pown(h,6));
-	float k = 223811.6;
+	float k = 45 / (3.14159 * pown(h,6));
+	//float k = 223811.6;
 	
 	if (x > h) return 0;
 	return k * (h-x);
@@ -49,7 +49,7 @@ global uint* data
 	float4 pos = body_Pos[id];
 	
 	//for (int i = 0; i < N; i++) {
-	int4 gridPos = convert_int4((BUFFER_SIZE_SIDE - 2) * (body_Pos[id] + (float4)1) / 2);
+	int4 gridPos = convert_int4((BUFFER_SIZE_SIDE - 1) * (body_Pos[id] + (float4)1) / 2);
 	
 	for (int l = max(gridPos.x - OFFSET, 0); l <= min(gridPos.x + OFFSET, BUFFER_SIZE_SIDE - 1) ; l++) {
 	for (int j = max(gridPos.y - OFFSET, 0); j <= min(gridPos.y + OFFSET, BUFFER_SIZE_SIDE - 1) ; j++) {
@@ -92,15 +92,15 @@ global uint* data
 {
 	uint id = get_global_id(0);
 	uint N = get_global_size(0);
-	float h = 0.2;
+	float h = 0.4;
 	float4 new_n = (float4)0;
 	float4 pos = body_Pos[id];
 	
-	int4 gridPos = convert_int4((BUFFER_SIZE_SIDE - 2) * (body_Pos[id] + (float4)1) / 2);
+	int4 gridPos = convert_int4((BUFFER_SIZE_SIDE - 1) * (body_Pos[id] + (float4)1) / 2);
 	
-	for (int l = max(gridPos.x - OFFSET, 0); l <= min(gridPos.x + OFFSET, BUFFER_SIZE_SIDE - 1) ; l++) {
-	for (int j = max(gridPos.y - OFFSET, 0); j <= min(gridPos.y + OFFSET, BUFFER_SIZE_SIDE - 1) ; j++) {
-	for (int k = max(gridPos.z - OFFSET, 0); k <= min(gridPos.z + OFFSET, BUFFER_SIZE_SIDE - 1) ; k++) {
+	for (int l = max(gridPos.x - OFFSET+1, 0); l <= min(gridPos.x + OFFSET+1, BUFFER_SIZE_SIDE - 1) ; l++) {
+	for (int j = max(gridPos.y - OFFSET+1, 0); j <= min(gridPos.y + OFFSET+1, BUFFER_SIZE_SIDE - 1) ; j++) {
+	for (int k = max(gridPos.z - OFFSET+1, 0); k <= min(gridPos.z + OFFSET+1, BUFFER_SIZE_SIDE - 1) ; k++) {
 
 	 	int cnt_ind = BUFFER_SIZE_DEPTH * (l + BUFFER_SIZE_SIDE * j + BUFFER_SIZE_SIDE * BUFFER_SIZE_SIDE * k);
 		uint cnt = data[cnt_ind];
@@ -158,7 +158,7 @@ global uint* data
 	float4 V = body_V[id];
 	float P = body_P[id];
 	
-	int4 gridPos = convert_int4((BUFFER_SIZE_SIDE - 2) * (pos + (float4)1) / 2);
+	int4 gridPos = convert_int4((BUFFER_SIZE_SIDE - 1) * (pos + (float4)1) / 2);
 	
 	for (int l = max(gridPos.x - OFFSET, 0); l <= min(gridPos.x + OFFSET, BUFFER_SIZE_SIDE - 1) ; l++) {
 	for (int j = max(gridPos.y - OFFSET, 0); j <= min(gridPos.y + OFFSET, BUFFER_SIZE_SIDE - 1) ; j++) {
@@ -203,7 +203,7 @@ global uint* data
 		r[i] = distance(pos, b[i]);
 
 		if (r[i] < 0.05) {
-			a_W += (0.05 - r[i]) * (pos - b[i]) / (length(pos - b[i]) * pown(DELTA_T,2));
+			a_W += (0.052 - r[i]) * (pos - b[i]) / (length(pos - b[i]) * pown(DELTA_T,2));
 		}
 	
 	}
@@ -251,7 +251,7 @@ global uint* data
     uint id = get_global_id(0);
     body_Pos[id] += body_V[id] * DELTA_T;
     
-    int4 gridPos = convert_int4((BUFFER_SIZE_SIDE - 2) * (body_Pos[id] + (float4)1) / 2);
+    int4 gridPos = convert_int4((BUFFER_SIZE_SIDE - 1) * (body_Pos[id] + (float4)1) / 2);
     int cnt_ind = BUFFER_SIZE_DEPTH * (gridPos.x + BUFFER_SIZE_SIDE * gridPos.y + BUFFER_SIZE_SIDE * BUFFER_SIZE_SIDE * gridPos.z);
     int cnt = atomic_inc(&data[cnt_ind]) + 1;
     data[cnt_ind + cnt] = id;

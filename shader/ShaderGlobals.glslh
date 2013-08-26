@@ -25,7 +25,7 @@ const float g_ambient = 0;
 
 float saturate(float s)
 {
-    return clamp(s, 0.1, 1);
+    return clamp(s, 0.0, 1);
 }
 
 vec2 getSpecDiffuseCoe(vec3 normal, vec3 eye, vec3 worldPos, vec3 lightPos)
@@ -35,10 +35,29 @@ vec2 getSpecDiffuseCoe(vec3 normal, vec3 eye, vec3 worldPos, vec3 lightPos)
     vec3 posToEye = normalize(eye - worldPos);
     
     vec3 reflectVec = reflect(lightToPos, normal);
-
-    float diffuse = 0.5f + 0.5f * dot(-lightToPos, normal);
+    
+    float dist = length(lightToPos);
+	float t = dist / 10 ;
+	//float diffuse = 0.3 * pow(cos(1.57079 * t), 2);
+    float diffuse = 0.6f + 0.6f * dot(-lightToPos, normal);
 
     float specular = pow(saturate(dot(reflectVec, posToEye)), 32);
     
     return vec2(specular, diffuse);
+}
+
+vec3 getLight(vec3 fragmentPos, vec3 lightPos, vec3 normal){
+
+    vec3 l = lightPos - fragmentPos;
+    float distSq = dot(l, l);
+    float e = 16.0 / (1.0 + distSq);
+    l = normalize(l);
+    float id = max(0, dot(normal, l));
+    
+    // --- begin phong
+    vec3 v = normalize(g_eye.xyz - fragmentPos);
+    vec3 r = reflect(-l, normal);
+    float is = max(0, pow(dot(v, r), 32));
+    
+    return  e * vec3(1) * (id + is);
 }
