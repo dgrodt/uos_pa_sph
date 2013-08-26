@@ -37,6 +37,7 @@ import pa.cl.OpenCL;
 import pa.util.BufferHelper;
 import pa.util.IOUtil;
 import pa.util.math.MathUtil;
+import sph.helper.Settings;
 
 public class SPH {
 
@@ -117,6 +118,7 @@ public class SPH {
 
 		float p[] = new float[N * 4];
 		float v[] = new float[N * 4];
+		float normals[] = new float[N * 4];
 
 		int cnt = 0;
 		for (int i = 0; i < n; i++) {
@@ -138,7 +140,7 @@ public class SPH {
 		clDataStructure = clCreateBuffer(context, CL_MEM_READ_WRITE
 				| CL_MEM_COPY_HOST_PTR, dataStructure);
 
-		buffers = vis.createPositions(p, context);
+		buffers = vis.createPositions(p, normals, context);
 
 		FloatBuffer buffer = BufferUtils.createFloatBuffer(4 * N);
 		buffer.put(v);
@@ -175,8 +177,7 @@ public class SPH {
 		buffer.put(n_arr);
 		buffer.rewind();
 
-		body_n = clCreateBuffer(context, CL_MEM_READ_WRITE
-				| CL_MEM_COPY_HOST_PTR, buffer);
+		body_n = buffers[2];
 
 		clSetKernelArg(sph_resetData, 0, clDataStructure);
 
@@ -223,42 +224,50 @@ public class SPH {
 			
 				time = System.currentTimeMillis();
 				clEnqueueNDRangeKernel(queue, sph_calcNewRho, 1, null, gws_BodyCnt, null, null, null);
-				OpenCL.clFinish(queue);
-				System.out.println(System.currentTimeMillis() - time);
+				if(Settings.PROFILING) {
+					OpenCL.clFinish(queue);
+					System.out.println(System.currentTimeMillis() - time);
+				}
 				
 				time = System.currentTimeMillis();
 				clEnqueueNDRangeKernel(queue, sph_calcNewP, 1, null, gws_BodyCnt, null, null, null);
-				OpenCL.clFinish(queue);
-				System.out.println(System.currentTimeMillis() - time);
+				if(Settings.PROFILING) {
+					OpenCL.clFinish(queue);
+					System.out.println(System.currentTimeMillis() - time);
+				}
 				
 				clEnqueueNDRangeKernel(queue, sph_calcNewN, 1, null, gws_BodyCnt, null, null, null);
-				OpenCL.clEnqueueReadBuffer(queue, body_n, CL_FALSE, 0, float_buffer, null, null);
-				//BufferHelper.printBuffer(float_buffer, 4);
+				if(Settings.PROFILING) {
+					OpenCL.clEnqueueReadBuffer(queue, body_n, CL_FALSE, 0, float_buffer, null, null);
+					BufferHelper.printBuffer(float_buffer, 4);
 				
-				//clEnqueueNDRangeKernel(queue, sph_calcNewN, 1, null,
-				//		gws_BodyCnt, null, null, null);
-				time = System.currentTimeMillis();
+					//clEnqueueNDRangeKernel(queue, sph_calcNewN, 1, null,
+					//		gws_BodyCnt, null, null, null);
+					time = System.currentTimeMillis();
+				}
 				clEnqueueNDRangeKernel(queue, sph_calcNewV, 1, null, gws_BodyCnt, null, null, null);
-				OpenCL.clFinish(queue);
-				System.out.println(System.currentTimeMillis() - time);
-				
-				
-				
-				
-				
-				
+				if(Settings.PROFILING) {
+					OpenCL.clFinish(queue);
+					System.out.println(System.currentTimeMillis() - time);
+				}
+
 				time = System.currentTimeMillis();
 				clEnqueueNDRangeKernel(queue, sph_resetData, 1, null, gws_CellCnt, null, null, null);
-				OpenCL.clFinish(queue);
-				System.out.println(System.currentTimeMillis() - time);
-				// OpenCL.clEnqueueReadBuffer(queue, clDataStructure,
-				// CL_FALSE, 0, int_buffer, null, null);
-				// BufferHelper.printBuffer(int_buffer, 8*8*8*10);
+				if(Settings.PROFILING) {
+					OpenCL.clFinish(queue);
+					System.out.println(System.currentTimeMillis() - time);
+					// OpenCL.clEnqueueReadBuffer(queue, clDataStructure,
+					// CL_FALSE, 0, int_buffer, null, null);
+					// BufferHelper.printBuffer(int_buffer, 8*8*8*10);
+				}
 				time = System.currentTimeMillis();
 				clEnqueueNDRangeKernel(queue, sph_calcNewPos, 1, null, gws_BodyCnt, null, null, null);
-				OpenCL.clFinish(queue);
-				System.out.println(System.currentTimeMillis() - time);
-				System.out.println("-------------------------");
+				if(Settings.PROFILING) {
+					OpenCL.clFinish(queue);
+					System.out.println(System.currentTimeMillis() - time);
+					System.out.println("-------------------------");
+				}
+				
 
 			}
 			vis.visualize();

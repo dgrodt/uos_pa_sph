@@ -1,6 +1,7 @@
 #version 330
 
 #include "shader/ShaderGlobals.glslh"
+
 uniform sampler2D g_quadTexture;
 uniform sampler2D g_particles_normals;
 uniform sampler2D g_particles_worldpos;
@@ -9,13 +10,12 @@ in vec2 fs_in_tc;
 in vec4 fs_in_ViewPos;
 out vec4 fs_out_color;
 
-const float blurSize = 2.0/768.0;
-
 uniform float offset[5] = float[]( 0.0, 1.0, 2.0, 3.0, 4.0 );
 uniform float weight[5] = float[]( 0.2270270270, 0.1945945946, 0.1216216216, 0.0540540541, 0.0162162162 );
 
 void main()
 {
+	float blurSize = setting_blur/768f;
 	vec2 fragCoords = vec2(fs_in_tc.x, 1-fs_in_tc.y);
 	fs_out_color = texture2D(g_quadTexture, fragCoords);
 	/*
