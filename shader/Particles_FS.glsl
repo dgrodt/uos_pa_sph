@@ -17,7 +17,7 @@ layout(location = 3) out vec3 fs_out_normals;
 void main()
 {
     vec2 tx = 2 * fs_in_tc - 1;
-    if(tx.x * tx.x + tx.y * tx.y > 0.9)
+    if(tx.x * tx.x + tx.y * tx.y > 0.5)
     {
        discard;
     }

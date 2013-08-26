@@ -1,6 +1,6 @@
-#define BUFFER_SIZE_SIDE 32
-#define BUFFER_SIZE_DEPTH 64
-#define OFFSET 2
+#define BUFFER_SIZE_SIDE 20
+#define BUFFER_SIZE_DEPTH 50
+#define OFFSET 1
 
 float W (float4 r, float h) {
 

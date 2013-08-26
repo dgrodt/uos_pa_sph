@@ -129,13 +129,13 @@ public class Visualizer extends FrameWork
     	int height = FrameWork.instance().getHeight();
     	
     	//First Texture
-    	Texture frameTexture = Texture.create2DTexture(GL11.GL_RGBA, GL30.GL_RGBA16F, GL11.GL_FLOAT, width, height, 0, null);
+    	Texture frameTexture = Texture.create2DTexture("color", GL11.GL_RGBA, GL30.GL_RGBA16F, GL11.GL_FLOAT, width, height, 0, null);
     	//Depth Informations
-    	Texture depthTexture = Texture.create2DTexture(GL11.GL_RED,  GL30.GL_R16F,    GL11.GL_FLOAT, width, height, 1, null);
+    	Texture depthTexture = Texture.create2DTexture("depth",GL11.GL_RED,  GL30.GL_R16F,    GL11.GL_FLOAT, width, height, 1, null);
     	//World Coordinates
-    	Texture worldTexture = Texture.create2DTexture(GL11.GL_RGB, GL30.GL_RGB16F, GL11.GL_FLOAT, width, height, 2, null);
+    	Texture worldTexture = Texture.create2DTexture("world",GL11.GL_RGB, GL30.GL_RGB16F, GL11.GL_FLOAT, width, height, 2, null);
     	//Particle normals
-    	Texture normalTexture = Texture.create2DTexture(GL11.GL_RGB, GL30.GL_RGB16F, GL11.GL_FLOAT, width, height, 3, null);
+    	Texture normalTexture = Texture.create2DTexture("normal",GL11.GL_RGB, GL30.GL_RGB16F, GL11.GL_FLOAT, width, height, 3, null);
     	//Create Frame buffer
         frameBuffer = FrameBuffer.createFrameBuffer("main", true, frameTexture, depthTexture, worldTexture, normalTexture); 
         frameBuffer.addUniformTexture("g_particles_normals", 3);
@@ -153,9 +153,9 @@ public class Visualizer extends FrameWork
         m_program.bindUniformBlock("Color", FrameWork.UniformBufferSlots.COLOR_BUFFER_SLOT);
         m_program.bindUniformBlock("Settings", FrameWork.UniformBufferSlots.SETTINGS_BUFFER_SLOT);
         m_program.use();
-//    	GL11.glEnable(GL11.GL_BLEND);
-//    	GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-        GL11.glDisable(GL11.GL_CULL_FACE);
+    	//GL11.glEnable(GL11.GL_BLEND);
+    	//GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+        //GL11.glDisable(GL11.GL_CULL_FACE);
         Matrix4f m = new Matrix4f();
         m.setIdentity();
         m.store(MATRIX4X4_BUFFER);
