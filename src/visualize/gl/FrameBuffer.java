@@ -41,6 +41,7 @@ public class FrameBuffer {
             }
         }
         FrameBuffer buffer = new FrameBuffer(name, depthStencil, copiedTextures);
+     
         if(!buffer.init()) {
             buffer.delete();
             System.out.printf("Initialization of FrameBuffer %s failed!\n", name);
@@ -74,6 +75,17 @@ public class FrameBuffer {
 	
 	private boolean init()
 	{
+        //Setup Program Variables
+		frameBufferProgram = new Program();
+		frameBufferProgram.create("shader/ScreenQuad_VS.glsl", "shader/ScreenQuad_FS.glsl");
+		frameBufferProgram.bindAttributeLocation("vs_in_position", 0);
+		frameBufferProgram.bindAttributeLocation("vs_in_tc", 1);
+		frameBufferProgram.linkAndValidate();
+        //m_sLocation = frameBufferProgram.getUniformLocation("g_quadTexture");
+        dynamicScreenSquad = GeometryFactory.createDynamicScreenQuad();
+//        transformScreenQuad(0, 0, this.textures[0].getDest().width, this.textures[0].getDest().height);
+        
+		
 		this.ID = GL30.glGenFramebuffers();
 		GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, this.ID);
         if(this.ID== 0) {
@@ -92,22 +104,14 @@ public class FrameBuffer {
             this.textures[i].bind();
             GL32.glFramebufferTexture(GL30.GL_FRAMEBUFFER, GL30.GL_COLOR_ATTACHMENT0 + i, this.textures[i].getId(), 0);
             drawBuffers.put(i, GL30.GL_COLOR_ATTACHMENT0 + i);
+            addUniformTexture(textures[i].getDest().name,textures[i].getUInt());
             if(!this.checkError()) {
                 System.out.printf("Framebuffer %s texture %d failed.\n", this.name, i);
             }                
         }
         GL20.glDrawBuffers(drawBuffers);
         
-        //Setup Program Variables
-		frameBufferProgram = new Program();
-		frameBufferProgram.create("shader/ScreenQuad_VS.glsl", "shader/ScreenQuad_FS.glsl");
-		frameBufferProgram.bindAttributeLocation("vs_in_position", 0);
-		frameBufferProgram.bindAttributeLocation("vs_in_tc", 1);
-		frameBufferProgram.linkAndValidate();
-        m_sLocation = frameBufferProgram.getUniformLocation("g_quadTexture");
-        dynamicScreenSquad = GeometryFactory.createDynamicScreenQuad();
-//        transformScreenQuad(0, 0, this.textures[0].getDest().width, this.textures[0].getDest().height);
-     
+
         return this.checkError();
 	}
 	
@@ -226,6 +230,10 @@ public class FrameBuffer {
     
     public void addUniformTexture(String variableName, int unit) {
     	int variableID = frameBufferProgram.getUniformLocation(variableName);
+    	if(variableID!=-1)
+    	{
+    		System.out.println(variableID);
+    	}
     	uniformTexturesIDs.add(variableID);
     	uniformTexturesUnits.add(unit);
     }
