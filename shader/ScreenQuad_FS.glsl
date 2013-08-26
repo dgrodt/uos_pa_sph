@@ -15,19 +15,10 @@ uniform float weight[5] = float[]( 0.2270270270, 0.1945945946, 0.1216216216, 0.0
 
 void main()
 {
-	float blurSize = setting_blur/768f;
+	float blurSize = 1f/768f;
 	vec2 fragCoords = vec2(fs_in_tc.x, 1-fs_in_tc.y);
 	fs_out_color = texture2D(color, fragCoords);
-	/*
-	vec3 normal = normalize(cross(texture2D(color, vec2(fragCoords.x - 5, fragCoords.y)).xyz - texture2D(color, fragCoords).xyz, texture2D(color, vec2(fragCoords.x, fragCoords.y - 5)).xyz - texture2D(color, fragCoords).xyz));
-    
-    vec3 worldView = texture2D(color, fragCoords).xyz;
-    
-    vec3 lightPos = (g_view * vec4(g_lightPos, 1)).xyz;
-    
-    vec3 eye = (g_view * vec4(g_eye.xyz,1)).xyz;
-    
-    vec2 cofs = getSpecDiffuseCoe(normal, eye, worldView, lightPos);*/
+	
 	vec4 sum = vec4(0.0);
 	   
     // blur in y (vertical)
@@ -53,7 +44,6 @@ void main()
     sum += texture2D(normal, vec2(fragCoords.x + 2.0*blurSize, fragCoords.y)) * 0.12;
     sum += texture2D(normal, vec2(fragCoords.x + 3.0*blurSize, fragCoords.y)) * 0.09;
     sum += texture2D(normal, vec2(fragCoords.x + 4.0*blurSize, fragCoords.y)) * 0.05;
-    fs_out_color = (fs_out_color + sum) ;//*  clamp(1-texture2D(depth, fragCoords).x, 0.4, 1);;
-    //fs_out_color.w = fs_out_color.w;
-	//fs_out_color = vec4(1,0,0,0) - texture2D(depth, fragCoords);
+    
+    fs_out_color = (fs_out_color + sum);
 }

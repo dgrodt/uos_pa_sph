@@ -148,13 +148,14 @@ public class Visualizer extends FrameWork
         m_program.bindAttributeLocation("vs_in_normal", 1);
         m_program.bindAttributeLocation("vs_in_tc", 2);
         m_program.bindAttributeLocation("vs_in_instance", 3);
+        m_program.bindAttributeLocation("vs_in_normal_new", 4);
         m_program.linkAndValidate();
         m_program.bindUniformBlock("Camera", FrameWork.UniformBufferSlots.CAMERA_BUFFER_SLOT);
         m_program.bindUniformBlock("Color", FrameWork.UniformBufferSlots.COLOR_BUFFER_SLOT);
         m_program.bindUniformBlock("Settings", FrameWork.UniformBufferSlots.SETTINGS_BUFFER_SLOT);
         m_program.use();
-    	//GL11.glEnable(GL11.GL_BLEND);
-    	//GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+//    	GL11.glEnable(GL11.GL_BLEND);
+//    	GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
         //GL11.glDisable(GL11.GL_CULL_FACE);
         Matrix4f m = new Matrix4f();
         m.setIdentity();
