@@ -1,11 +1,12 @@
 #define BUFFER_SIZE_SIDE 32
 #define BUFFER_SIZE_DEPTH 64
-#define OFFSET 2
+#define OFFSET 1
 
 float W (float4 r, float h) {
 
 	float x = length(r);
 	float k = 315 / (64 * 3.14159 * pown(h,9));
+	//float k = 3059924.7;
 	
 	if (x > h) return 0;
 	return k * pown(h*h-x*x,3);
@@ -16,6 +17,7 @@ float4 gradW (float4 r, float h) {
 
 	float x = length(r);
 	float k = 45 / (3.14159 * pown(h,6));
+	//float k = 223811.6;
 	
 	if (x > h) return 0;
 	return k * pown(h-x,3) * r / x;
@@ -25,6 +27,7 @@ float4 gradWV (float4 r, float h) {
 
 	float x = length(r);
 	float k = 45 / (3.14159 * pown(h,6));
+	//float k = 223811.6;
 	
 	if (x > h) return 0;
 	return k * (h-x);
@@ -43,6 +46,7 @@ global uint* data
 	float h = 0.2;
 
 	float rhoByM = 0;
+	float4 pos = body_Pos[id];
 	
 	//for (int i = 0; i < N; i++) {
 	int4 gridPos = convert_int4((BUFFER_SIZE_SIDE - 1) * (body_Pos[id] + (float4)1) / 2);
@@ -56,7 +60,8 @@ global uint* data
 		for (int o = 1; o <= cnt; o++) {
 		
 			int i = data[cnt_ind + o];
-			rhoByM += W(body_Pos[id]-body_Pos[i], h);
+			rhoByM += W(pos-body_Pos[i], h);
+			
 		}
 	}
 	}
@@ -81,28 +86,42 @@ const float rho
 kernel void sph_CalcNewN(
 global float4* body_Pos,
 global float* body_rho,
-global float4* n
+global float4* n,
+global uint* data
 )
 {
 	uint id = get_global_id(0);
 	uint N = get_global_size(0);
-	float h = 0.35;
+	float h = 0.4;
 	float4 new_n = (float4)0;
+	float4 pos = body_Pos[id];
 	
-	for (int i = 0; i < N; i++) {
+	int4 gridPos = convert_int4((BUFFER_SIZE_SIDE - 1) * (body_Pos[id] + (float4)1) / 2);
+	
+	for (int l = max(gridPos.x - OFFSET+1, 0); l <= min(gridPos.x + OFFSET+1, BUFFER_SIZE_SIDE - 1) ; l++) {
+	for (int j = max(gridPos.y - OFFSET+1, 0); j <= min(gridPos.y + OFFSET+1, BUFFER_SIZE_SIDE - 1) ; j++) {
+	for (int k = max(gridPos.z - OFFSET+1, 0); k <= min(gridPos.z + OFFSET+1, BUFFER_SIZE_SIDE - 1) ; k++) {
 
-		float4 r = body_Pos[id]-body_Pos[i];
-		
-		if (i!=id)
-			new_n += gradW(r, h) / body_rho[i];
+	 	int cnt_ind = BUFFER_SIZE_DEPTH * (l + BUFFER_SIZE_SIDE * j + BUFFER_SIZE_SIDE * BUFFER_SIZE_SIDE * k);
+		uint cnt = data[cnt_ind];
+		for (int o = 1; o <= cnt; o++) {
+
+			int i = data[cnt_ind + o];	
+	
+			if (i!=id)
+				new_n += gradW(pos-body_Pos[i], h) / (body_rho[i] * 300000);
+		}
+	}
+	}
 	}
 	
-	if (length(new_n) > 10) {
-		n[id] = new_n;
-	}
-	else {
-		n[id] = (float4)0;
-	}
+	//if (length(new_n) > 10) {
+		n[id] = new_n / length(new_n);
+		n[id].w = length(new_n);
+	//}
+	//else {
+		//n[id] = (float4)0;
+	//}
 }
 
 
@@ -131,11 +150,15 @@ global uint* data
 	float4 a_T = (float4)0;
 	
 	
-	//--------------------------------------
-	//		calculate pressure forces
-	//--------------------------------------
+	//---------------------------------------------------
+	//		calculate pressure and viscosity forces
+	//---------------------------------------------------
 	
-	int4 gridPos = convert_int4((BUFFER_SIZE_SIDE - 1) * (body_Pos[id] + (float4)1) / 2);
+	float4 pos = body_Pos[id];
+	float4 V = body_V[id];
+	float P = body_P[id];
+	
+	int4 gridPos = convert_int4((BUFFER_SIZE_SIDE - 1) * (pos + (float4)1) / 2);
 	
 	for (int l = max(gridPos.x - OFFSET, 0); l <= min(gridPos.x + OFFSET, BUFFER_SIZE_SIDE - 1) ; l++) {
 	for (int j = max(gridPos.y - OFFSET, 0); j <= min(gridPos.y + OFFSET, BUFFER_SIZE_SIDE - 1) ; j++) {
@@ -147,49 +170,47 @@ global uint* data
 		
 			int i = data[cnt_ind + o];
 		
-			float4 r = body_Pos[id]-body_Pos[i];
+			float4 r = pos-body_Pos[i];
 			
-			a_V += -nu * (body_V[id] - body_V[i]) * gradWV(r, h) / body_rho[i];
+			a_V += -nu * (V - body_V[i]) * gradWV(r, h) / body_rho[i];
 			
 			float4 grad = gradW(r, h);
 			
-			//float C = body_P[i]/(pown(body_rho[i],2)) + body_P[id]/(pown(body_rho[id],2));
-			float C = (body_P[i] + body_P[id])/(2 * body_rho[i]);
+			float C = (body_P[i] + P)/(2 * body_rho[i]);
 			
 			if (id!=i) {
 				a_P += C * grad;
 			}
-			
 		}
 	}
 	}
 	}
 	
-	//--------------------------------------
+	//---------------------------------------------------
 	//		calculate boundary forces
-	//--------------------------------------
+	//---------------------------------------------------
 	
-	float4 pos = body_Pos[id];
-	float r[5];
-	float4 b[5];
+	float r[6];
+	float4 b[6];
 	b[0] = (float4)(pos.x, -1, pos.z, 0);
 	b[1] = (float4)(pos.x, pos.y, -1, 0);
 	b[2] = (float4)(pos.x, pos.y, 1, 0);
 	b[3] = (float4)(-1, pos.y, pos.z, 0);
 	b[4] = (float4)(1, pos.y, pos.z, 0);
+	b[5] = (float4)(pos.x, 1, pos.z, 0);
 	
-	for (int i = 0; i < 5; i++) {
+	for (int i = 0; i < 6; i++) {
 		r[i] = distance(pos, b[i]);
 
 		if (r[i] < 0.05) {
-			a_W += (0.05 - r[i]) * (pos - b[i]) / (length(pos - b[i]) * pown(DELTA_T,2));
+			a_W += (0.052 - r[i]) * (pos - b[i]) / (length(pos - b[i]) * pown(DELTA_T,2));
 		}
 	
 	}
 	
-	//--------------------------------------
+	//---------------------------------------------------
 	//		calculate tension forces
-	//--------------------------------------
+	//---------------------------------------------------
 	
 	/*
 	float nabla_n = 0;

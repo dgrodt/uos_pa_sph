@@ -18,6 +18,7 @@ public class Texture
 {
     public static class TextureDescription
     {
+    	public String name;
         public int internalFormat;
         public int format;
         public int target = GL11.GL_TEXTURE_2D;
@@ -111,9 +112,10 @@ public class Texture
     	return t;
     }
     
-    public static Texture create2DTexture(int format, int internalFormat, int type, int w, int h, int unit, FloatBuffer data)
+    public static Texture create2DTexture(String name ,int format, int internalFormat, int type, int w, int h, int unit, FloatBuffer data)
     {
         TextureDescription desc = new TextureDescription();
+        desc.name = name;
         desc.target = GL11.GL_TEXTURE_2D;
         desc.type = GL11.GL_FLOAT;
         desc.format = format;
@@ -128,12 +130,12 @@ public class Texture
     
     public static Texture createRGBA16F2DTexture(int w, int h, int unit, FloatBuffer data)
     {
-        return create2DTexture(GL11.GL_RGBA, GL30.GL_RGBA16F, GL11.GL_FLOAT, w, h, unit, data);
+        return create2DTexture("default",GL11.GL_RGBA, GL30.GL_RGBA16F, GL11.GL_FLOAT, w, h, unit, data);
     }
     
     public static Texture createRGBA2DTexture(int w, int h, int unit, FloatBuffer data)
     {
-        return create2DTexture(GL11.GL_RGBA, GL11.GL_RGBA8,GL11.GL_FLOAT, w, h, unit, data);
+        return create2DTexture("default",GL11.GL_RGBA, GL11.GL_RGBA8,GL11.GL_FLOAT, w, h, unit, data);
     }
     
     public static Texture createRGBAFromX(TextureData data, int unit)
@@ -174,7 +176,7 @@ public class Texture
             case 4: internalFormat = GL11.GL_RGBA8; format = GL11.GL_RGBA; break;
         }
         
-        return create2DTexture(format, internalFormat,GL11.GL_FLOAT, td.w, td.h, unit, td.data);
+        return create2DTexture("file",format, internalFormat,GL11.GL_FLOAT, td.w, td.h, unit, td.data);
     }
     
     public static Texture create3DTexture(){

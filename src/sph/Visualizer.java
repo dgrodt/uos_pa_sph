@@ -1,13 +1,14 @@
 package sph;
 
+import static pa.cl.OpenCL.CL_MEM_COPY_HOST_PTR;
 import static pa.cl.OpenCL.CL_MEM_READ_WRITE;
+import static pa.cl.OpenCL.clCreateBuffer;
 import static pa.cl.OpenCL.clCreateFromGLBuffer;
 import static pa.cl.OpenCL.clEnqueueAcquireGLObjects;
 import static pa.cl.OpenCL.clEnqueueReleaseGLObjects;
 import static pa.cl.OpenCL.clReleaseMemObject;
 import static pa.cl.OpenCL.clSetKernelArg;
 
-import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 
 import org.lwjgl.BufferUtils;
@@ -19,8 +20,7 @@ import org.lwjgl.opencl.CLKernel;
 import org.lwjgl.opencl.CLMem;
 import org.lwjgl.opengl.Display;
 import org.lwjgl.opengl.GL11;
-import org.lwjgl.opengl.GL12;
-import org.lwjgl.opengl.GL13;
+import org.lwjgl.opengl.GL14;
 import org.lwjgl.opengl.GL15;
 import org.lwjgl.opengl.GL20;
 import org.lwjgl.opengl.GL30;
@@ -29,7 +29,6 @@ import org.lwjgl.util.vector.Vector3f;
 
 import visualize.FrameWork;
 import visualize.gl.FrameBuffer;
-import visualize.gl.GLUtil;
 import visualize.gl.GeometryFactory;
 import visualize.gl.Texture;
 import visualize.gl.GeometryFactory.Geometry;
@@ -81,7 +80,7 @@ public class Visualizer extends FrameWork
     
     protected int m_invCameraAdress;
     
-    protected Geometry[] m_buffer = new Geometry[2];
+    protected Geometry[] m_buffer = new Geometry[3];
     
     protected Program m_program;
     protected Program m_quadProgram;
@@ -95,12 +94,15 @@ public class Visualizer extends FrameWork
     protected long m_lastTimeSteps = 0;
     protected CLMem m_oglBuffer0;
     protected CLMem m_oglBuffer1;
+    protected CLMem m_oglBuffer2;
+    
+    protected FloatBuffer settingsBuffer;
     
     private boolean m_pause = false;
     
     public Visualizer(int w, int h) 
     {
-        super(w, h, true, true, "", false, false);
+        super(w, h, true, false, "", false, false);
     }
     
     public Params getCurrentParams()
@@ -125,16 +127,19 @@ public class Visualizer extends FrameWork
     	//Setup Textures
     	int width = FrameWork.instance().getWidth();
     	int height = FrameWork.instance().getHeight();
-
     	
     	//First Texture
-    	Texture frameTexture = Texture.create2DTexture(GL11.GL_RGBA, GL30.GL_RGBA16F, GL11.GL_FLOAT, width, height, 0, null);
+    	Texture frameTexture = Texture.create2DTexture("color", GL11.GL_RGBA, GL30.GL_RGBA16F, GL11.GL_FLOAT, width, height, 0, null);
     	//Depth Informations
-    	Texture depthTexture = Texture.create2DTexture(GL11.GL_RED,  GL30.GL_R16F,    GL11.GL_FLOAT, width, height, 1, null);
+    	Texture depthTexture = Texture.create2DTexture("depth",GL11.GL_RED,  GL30.GL_R16F,    GL11.GL_FLOAT, width, height, 1, null);
     	//World Coordinates
-    	Texture worldTexture = Texture.create2DTexture(GL11.GL_RGB, GL30.GL_RGB16F, GL11.GL_FLOAT, width, height, 2, null);
+    	Texture worldTexture = Texture.create2DTexture("world",GL11.GL_RGB, GL30.GL_RGB16F, GL11.GL_FLOAT, width, height, 2, null);
+    	//Particle normals
+    	Texture normalTexture = Texture.create2DTexture("normal",GL11.GL_RGB, GL30.GL_RGB16F, GL11.GL_FLOAT, width, height, 3, null);
     	//Create Frame buffer
-        frameBuffer = FrameBuffer.createFrameBuffer("main", true, frameTexture, depthTexture, worldTexture);        
+        frameBuffer = FrameBuffer.createFrameBuffer("main", true, frameTexture, depthTexture, worldTexture, normalTexture); 
+        frameBuffer.addUniformTexture("g_particles_normals", 3);
+        frameBuffer.addUniformTexture("g_particles_worldpos", 2);
         
         //Setup Particle Program
         m_program = new Program();
@@ -143,10 +148,16 @@ public class Visualizer extends FrameWork
         m_program.bindAttributeLocation("vs_in_normal", 1);
         m_program.bindAttributeLocation("vs_in_tc", 2);
         m_program.bindAttributeLocation("vs_in_instance", 3);
+        m_program.bindAttributeLocation("vs_in_normal_new", 4);
         m_program.linkAndValidate();
         m_program.bindUniformBlock("Camera", FrameWork.UniformBufferSlots.CAMERA_BUFFER_SLOT);
         m_program.bindUniformBlock("Color", FrameWork.UniformBufferSlots.COLOR_BUFFER_SLOT);
+        m_program.bindUniformBlock("Settings", FrameWork.UniformBufferSlots.SETTINGS_BUFFER_SLOT);
         m_program.use();
+
+    	GL11.glEnable(GL11.GL_BLEND);
+    	//GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_DST_ALPHA);
+        GL11.glDisable(GL11.GL_CULL_FACE);
 
         Matrix4f m = new Matrix4f();
         m.setIdentity();
@@ -166,16 +177,17 @@ public class Visualizer extends FrameWork
     	m_quadProgram.linkAndValidate();
     	m_quadProgram.bindUniformBlock("Camera", FrameWork.UniformBufferSlots.CAMERA_BUFFER_SLOT);
     	m_quadProgram.bindUniformBlock("Color", FrameWork.UniformBufferSlots.COLOR_BUFFER_SLOT);
+    	m_quadProgram.bindUniformBlock("Settings", FrameWork.UniformBufferSlots.SETTINGS_BUFFER_SLOT);
 
     	m_quadProgram.use();
-//        GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-//        GL11.glDisable(GL11.GL_CULL_FACE);
-        
+
        
         FloatBuffer data = BufferUtils.createFloatBuffer(4);
         data.put(0.5f); data.put(1); data.put(0); data.put(1);
         data.flip();
         m_color.loadFloatData(data, GL15.GL_DYNAMIC_DRAW);
+        
+        setBlur(10.0f);
         
         m_camera.setSpeed(0.25f);
         
@@ -188,7 +200,7 @@ public class Visualizer extends FrameWork
     public void close() 
     {
         clEnqueueReleaseGLObjects(m_queue, m_oglBuffer0, null, null);
-        //clEnqueueReleaseGLObjects(m_queue, m_oglBuffer1, null, null);
+        clEnqueueReleaseGLObjects(m_queue, m_oglBuffer2, null, null);
         if(m_oglBuffer0 != null)
         {
             clReleaseMemObject(m_oglBuffer0);
@@ -198,6 +210,11 @@ public class Visualizer extends FrameWork
         {
             clReleaseMemObject(m_oglBuffer1);
             m_oglBuffer1 = null;
+        }
+        if(m_oglBuffer2 != null)
+        {
+            clReleaseMemObject(m_oglBuffer2);
+            m_oglBuffer2 = null;
         }
         
         m_program.delete();
@@ -214,12 +231,12 @@ public class Visualizer extends FrameWork
         clSetKernelArg(m_kernel, 2, m_currentParams.m_timeStep);
     }
     
-    public CLMem[] createPositions(float[] pos, CLContext context) {
+    public CLMem[] createPositions(float[] pos, float[] normal, CLContext context) {
 		if (m_buffer[0] != null) {
 			m_buffer[0].delete();
 		}
 
-		m_buffer[0] = GeometryFactory.createParticles(pos,
+		m_buffer[0] = GeometryFactory.createParticles(pos, normal,
 				m_currentParams.m_pointSize * 0.9f, 4);
 
 		if (m_buffer[1] != null) {
@@ -233,12 +250,15 @@ public class Visualizer extends FrameWork
 		// m_oglBuffer1 = clCreateFromGLBuffer(context, CL_MEM_READ_WRITE,
 		// m_buffer[1].getInstanceBuffer(0).getId());
 
-		CLMem pair[] = new CLMem[2];
+		m_oglBuffer2 = clCreateFromGLBuffer(context, CL_MEM_READ_WRITE, m_buffer[0].getInstanceBuffer(1).getId());
+
+		CLMem pair[] = new CLMem[3];
 		pair[0] = m_oglBuffer0;
 		pair[1] = m_oglBuffer1;
+		pair[2] = m_oglBuffer2;
 
 		clEnqueueAcquireGLObjects(m_queue, m_oglBuffer0, null, null);
-		// clEnqueueAcquireGLObjects(m_queue, m_oglBuffer1, null, null);
+		clEnqueueAcquireGLObjects(m_queue, m_oglBuffer2, null, null);
 
 		return pair;
 	}
@@ -250,40 +270,34 @@ public class Visualizer extends FrameWork
     @Override
     public void render() 
     {
-    	
-
-    	GLUtil.checkError();
-
     	clEnqueueReleaseGLObjects(m_queue, m_oglBuffer0, null, null);
-       	//clEnqueueReleaseGLObjects(m_queue, m_oglBuffer1, null, null);
-    	   	
+       	clEnqueueReleaseGLObjects(m_queue, m_oglBuffer2, null, null);
+    	
         updateInput();
+
         //Bind and Clear Framebuffer
         frameBuffer.renderToFramebuffer();
         
         //Draw Box
-        
         m_quadProgram.use();
         setColor(1f, 1f, 1f, 1f);
         m_buffer[1].draw();
         
         //Draw Particles
         m_program.use();
-        setColor(0.5f, 0.5f, 1f, 1f);
+        setColor(0.3f, 0.3f, 1f, 0.8f);
         m_buffer[0].draw();
         
         //Swap back to Backbuffer and Draw Texture
         frameBuffer.renderToBackbuffer(0);
- 
+
         Display.update();
         
         
        	clEnqueueAcquireGLObjects(m_queue, m_oglBuffer0, null, null);
-        //clEnqueueAcquireGLObjects(m_queue, m_oglBuffer1, null, null);
-        
+        clEnqueueAcquireGLObjects(m_queue, m_oglBuffer2, null, null);
         m_timer.tick();
         Display.setTitle("SPH Simulation (FPS: "+m_timer.getFps()+")");
-       
     }
     
     public boolean isDone()
@@ -315,6 +329,20 @@ public class Visualizer extends FrameWork
         if(key == Keyboard.KEY_P)
         {
             m_pause = !m_pause;
+        }
+        if(key == Keyboard.KEY_NUMPAD1)
+        {
+            float blur = SETTINGS_BUFFER.get(0);
+            blur -= 0.5f;
+            setBlur(Math.max(Math.min(blur, 20.0f), 0));
+            System.out.println("set blur size to: "+ Math.max(Math.min(blur, 20.0f), 0));
+        }
+        if(key == Keyboard.KEY_NUMPAD3)
+        {
+            float blur = SETTINGS_BUFFER.get(0);
+            blur += 0.5f;
+            setBlur(Math.max(Math.min(blur, 20.0f), 0));
+            System.out.println("set blur size to: "+ Math.max(Math.min(blur, 20.0f), 0));
         }
     }
     
