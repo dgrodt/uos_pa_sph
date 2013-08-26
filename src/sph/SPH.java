@@ -40,7 +40,7 @@ import pa.util.math.MathUtil;
 
 public class SPH {
 
-	private final int n = 23;
+	private final int n = 21;
 	private final float vol = 1000000;
 	private final int[] dataBufferSize = { 32, 32, 32, 64 };
 	private final int N = n * n * n;
