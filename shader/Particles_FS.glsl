@@ -40,5 +40,6 @@ void main()
     
     fs_out_depth = fs_in_depth;
     fs_out_worldPos = fs_in_worldPos;
-    fs_out_normals = (cofs.x * vec4(0.1) + cofs.y * vec4(0.1)).xyz;//(cofs.x * vec4(1) + cofs.y * g_color + vec4(1) * g_ambient).xyz;
+    fs_out_normals = fs_in_normal;
+    //fs_out_normals = (cofs.x * vec4(0.1) + cofs.y * vec4(0.1)).xyz;//(cofs.x * vec4(1) + cofs.y * g_color + vec4(1) * g_ambient).xyz;
 }

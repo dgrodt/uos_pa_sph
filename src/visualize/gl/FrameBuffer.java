@@ -82,6 +82,10 @@ public class FrameBuffer {
 		frameBufferProgram.bindAttributeLocation("vs_in_tc", 1);
 		frameBufferProgram.linkAndValidate();
         //m_sLocation = frameBufferProgram.getUniformLocation("g_quadTexture");
+		frameBufferProgram.bindUniformBlock("Camera", FrameWork.UniformBufferSlots.CAMERA_BUFFER_SLOT);
+		frameBufferProgram.bindUniformBlock("Color", FrameWork.UniformBufferSlots.COLOR_BUFFER_SLOT);
+		frameBufferProgram.bindUniformBlock("Settings", FrameWork.UniformBufferSlots.SETTINGS_BUFFER_SLOT);
+
         dynamicScreenSquad = GeometryFactory.createDynamicScreenQuad();
 //        transformScreenQuad(0, 0, this.textures[0].getDest().width, this.textures[0].getDest().height);
         
@@ -230,10 +234,6 @@ public class FrameBuffer {
     
     public void addUniformTexture(String variableName, int unit) {
     	int variableID = frameBufferProgram.getUniformLocation(variableName);
-    	if(variableID!=-1)
-    	{
-    		System.out.println(variableID);
-    	}
     	uniformTexturesIDs.add(variableID);
     	uniformTexturesUnits.add(unit);
     }

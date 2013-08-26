@@ -1,5 +1,5 @@
-#define BUFFER_SIZE_SIDE 20
-#define BUFFER_SIZE_DEPTH 50
+#define BUFFER_SIZE_SIDE 24
+#define BUFFER_SIZE_DEPTH 64
 #define OFFSET 1
 
 float W (float4 r, float h) {
@@ -49,7 +49,7 @@ global uint* data
 	float4 pos = body_Pos[id];
 	
 	//for (int i = 0; i < N; i++) {
-	int4 gridPos = convert_int4((BUFFER_SIZE_SIDE - 1) * (body_Pos[id] + (float4)1) / 2);
+	int4 gridPos = convert_int4((BUFFER_SIZE_SIDE - 2) * (body_Pos[id] + (float4)1) / 2);
 	
 	for (int l = max(gridPos.x - OFFSET, 0); l <= min(gridPos.x + OFFSET, BUFFER_SIZE_SIDE - 1) ; l++) {
 	for (int j = max(gridPos.y - OFFSET, 0); j <= min(gridPos.y + OFFSET, BUFFER_SIZE_SIDE - 1) ; j++) {
@@ -96,7 +96,7 @@ global uint* data
 	float4 new_n = (float4)0;
 	float4 pos = body_Pos[id];
 	
-	int4 gridPos = convert_int4((BUFFER_SIZE_SIDE - 1) * (body_Pos[id] + (float4)1) / 2);
+	int4 gridPos = convert_int4((BUFFER_SIZE_SIDE - 2) * (body_Pos[id] + (float4)1) / 2);
 	
 	for (int l = max(gridPos.x - OFFSET, 0); l <= min(gridPos.x + OFFSET, BUFFER_SIZE_SIDE - 1) ; l++) {
 	for (int j = max(gridPos.y - OFFSET, 0); j <= min(gridPos.y + OFFSET, BUFFER_SIZE_SIDE - 1) ; j++) {
@@ -158,7 +158,7 @@ global uint* data
 	float4 V = body_V[id];
 	float P = body_P[id];
 	
-	int4 gridPos = convert_int4((BUFFER_SIZE_SIDE - 1) * (pos + (float4)1) / 2);
+	int4 gridPos = convert_int4((BUFFER_SIZE_SIDE - 2) * (pos + (float4)1) / 2);
 	
 	for (int l = max(gridPos.x - OFFSET, 0); l <= min(gridPos.x + OFFSET, BUFFER_SIZE_SIDE - 1) ; l++) {
 	for (int j = max(gridPos.y - OFFSET, 0); j <= min(gridPos.y + OFFSET, BUFFER_SIZE_SIDE - 1) ; j++) {
@@ -251,7 +251,7 @@ global uint* data
     uint id = get_global_id(0);
     body_Pos[id] += body_V[id] * DELTA_T;
     
-    int4 gridPos = convert_int4((BUFFER_SIZE_SIDE - 1) * (body_Pos[id] + (float4)1) / 2);
+    int4 gridPos = convert_int4((BUFFER_SIZE_SIDE - 2) * (body_Pos[id] + (float4)1) / 2);
     int cnt_ind = BUFFER_SIZE_DEPTH * (gridPos.x + BUFFER_SIZE_SIDE * gridPos.y + BUFFER_SIZE_SIDE * BUFFER_SIZE_SIDE * gridPos.z);
     int cnt = atomic_inc(&data[cnt_ind]) + 1;
     data[cnt_ind + cnt] = id;

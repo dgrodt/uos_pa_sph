@@ -19,13 +19,13 @@ layout (std140) uniform Settings3
 {
 	float setting_blur;
 };
-const vec3 g_lightPos = vec3(-30, 30, 0);
+const vec3 g_lightPos = vec3( -5, 5, 0);
 
 const float g_ambient = 0;
 
 float saturate(float s)
 {
-    return clamp(s, 0, 1);
+    return clamp(s, 0.1, 1);
 }
 
 vec2 getSpecDiffuseCoe(vec3 normal, vec3 eye, vec3 worldPos, vec3 lightPos)

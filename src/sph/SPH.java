@@ -124,11 +124,11 @@ public class SPH {
 		for (int i = 0; i < n; i++) {
 			for (int j = 0; j < n; j++) {
 				for (int k = 0; k < n; k++) {
-					p[cnt++] = (0.06f * j - 0.5f);// +
+					p[cnt++] = (0.06f * j - 0.9f);// +
 													// MathUtil.nextFloat(0.01f);
 					p[cnt++] = (0.06f * i - 0.9f);// +
 													// MathUtil.nextFloat(0.01f);
-					p[cnt++] = (0.06f * k - 0.5f);
+					p[cnt++] = (0.06f * k - 0.9f);
 					p[cnt++] = 0;
 				}
 			}

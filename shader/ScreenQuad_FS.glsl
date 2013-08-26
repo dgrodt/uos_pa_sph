@@ -20,40 +20,41 @@ void main()
 	fs_out_color = texture2D(color, fragCoords);
 	/*
 	vec3 normal = normalize(cross(texture2D(color, vec2(fragCoords.x - 5, fragCoords.y)).xyz - texture2D(color, fragCoords).xyz, texture2D(color, vec2(fragCoords.x, fragCoords.y - 5)).xyz - texture2D(color, fragCoords).xyz));
+    */
     
-    vec3 worldView = texture2D(color, fragCoords).xyz;
+    vec3 worldView = (texture2D(world, fragCoords)).xyz;
     
-    vec3 lightPos = (g_view * vec4(g_lightPos, 1)).xyz;
+    vec3 lightPos = ( g_view * vec4(g_lightPos, 1)).xyz;
     
     vec3 eye = (g_view * vec4(g_eye.xyz,1)).xyz;
     
-    vec2 cofs = getSpecDiffuseCoe(normal, eye, worldView, lightPos);*/
+    vec2 cofs = getSpecDiffuseCoe(vec3(0,1,0), eye, worldView, lightPos);
 	vec4 sum = vec4(0.0);
 	   
     // blur in y (vertical)
     // take nine samples, with the distance blurSize between them
-    sum += texture2D(normal, vec2(fragCoords.x, fragCoords.y - 4.0*blurSize)) * 0.05;
-    sum += texture2D(normal, vec2(fragCoords.x, fragCoords.y - 3.0*blurSize)) * 0.09;
-    sum += texture2D(normal, vec2(fragCoords.x, fragCoords.y - 2.0*blurSize)) * 0.12;
-    sum += texture2D(normal, vec2(fragCoords.x, fragCoords.y - blurSize)) * 0.15;
-    sum += texture2D(normal, vec2(fragCoords.x, fragCoords.y)) * 0.16;
-    sum += texture2D(normal, vec2(fragCoords.x, fragCoords.y + blurSize)) * 0.15;
-    sum += texture2D(normal, vec2(fragCoords.x, fragCoords.y + 2.0*blurSize)) * 0.12;
-    sum += texture2D(normal, vec2(fragCoords.x, fragCoords.y + 3.0*blurSize)) * 0.09;
-    sum += texture2D(normal, vec2(fragCoords.x, fragCoords.y + 4.0*blurSize)) * 0.05;
+    sum += texture2D(color, vec2(fragCoords.x, fragCoords.y - 4.0*blurSize)) * 0.05;
+    sum += texture2D(color, vec2(fragCoords.x, fragCoords.y - 3.0*blurSize)) * 0.09;
+    sum += texture2D(color, vec2(fragCoords.x, fragCoords.y - 2.0*blurSize)) * 0.12;
+    sum += texture2D(color, vec2(fragCoords.x, fragCoords.y - blurSize)) * 0.15;
+    sum += texture2D(color, vec2(fragCoords.x, fragCoords.y)) * 0.16;
+    sum += texture2D(color, vec2(fragCoords.x, fragCoords.y + blurSize)) * 0.15;
+    sum += texture2D(color, vec2(fragCoords.x, fragCoords.y + 2.0*blurSize)) * 0.12;
+    sum += texture2D(color, vec2(fragCoords.x, fragCoords.y + 3.0*blurSize)) * 0.09;
+    sum += texture2D(color, vec2(fragCoords.x, fragCoords.y + 4.0*blurSize)) * 0.05;
     
     // blur in x (horizontal)
     // take nine samples, with the distance blurSize between them
-    sum += texture2D(normal, vec2(fragCoords.x - 4.0*blurSize, fragCoords.y)) * 0.05;
-    sum += texture2D(normal, vec2(fragCoords.x - 3.0*blurSize, fragCoords.y)) * 0.09;
-    sum += texture2D(normal, vec2(fragCoords.x - 2.0*blurSize, fragCoords.y)) * 0.12;
-    sum += texture2D(normal, vec2(fragCoords.x - blurSize, fragCoords.y)) * 0.15;
-    sum += texture2D(normal, vec2(fragCoords.x, fragCoords.y)) * 0.16;
-    sum += texture2D(normal, vec2(fragCoords.x + blurSize, fragCoords.y)) * 0.15;
-    sum += texture2D(normal, vec2(fragCoords.x + 2.0*blurSize, fragCoords.y)) * 0.12;
-    sum += texture2D(normal, vec2(fragCoords.x + 3.0*blurSize, fragCoords.y)) * 0.09;
-    sum += texture2D(normal, vec2(fragCoords.x + 4.0*blurSize, fragCoords.y)) * 0.05;
-    fs_out_color = (fs_out_color + sum) ;//*  clamp(1-texture2D(depth, fragCoords).x, 0.4, 1);;
-    //fs_out_color.w = fs_out_color.w;
-	//fs_out_color = vec4(1,0,0,0) - texture2D(depth, fragCoords);
+    sum += texture2D(color, vec2(fragCoords.x - 4.0*blurSize, fragCoords.y)) * 0.05;
+    sum += texture2D(color, vec2(fragCoords.x - 3.0*blurSize, fragCoords.y)) * 0.09;
+    sum += texture2D(color, vec2(fragCoords.x - 2.0*blurSize, fragCoords.y)) * 0.12;
+    sum += texture2D(color, vec2(fragCoords.x - blurSize, fragCoords.y)) * 0.15;
+    sum += texture2D(color, vec2(fragCoords.x, fragCoords.y)) * 0.16;
+    sum += texture2D(color, vec2(fragCoords.x + blurSize, fragCoords.y)) * 0.15;
+    sum += texture2D(color, vec2(fragCoords.x + 2.0*blurSize, fragCoords.y)) * 0.12;
+    sum += texture2D(color, vec2(fragCoords.x + 3.0*blurSize, fragCoords.y)) * 0.09;
+    sum += texture2D(color, vec2(fragCoords.x + 4.0*blurSize, fragCoords.y)) * 0.05;
+    fs_out_color = (cofs.x * vec4(0.1) + cofs.y * texture2D(color, fragCoords) + vec4(1) * g_ambient) ;//* sum;
+    //fs_out_color.w =1;
+	//fs_out_color = texture2D(normal, fragCoords);
 }

@@ -153,9 +153,9 @@ public class Visualizer extends FrameWork
         m_program.bindUniformBlock("Color", FrameWork.UniformBufferSlots.COLOR_BUFFER_SLOT);
         m_program.bindUniformBlock("Settings", FrameWork.UniformBufferSlots.SETTINGS_BUFFER_SLOT);
         m_program.use();
-    	//GL11.glEnable(GL11.GL_BLEND);
-    	//GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-        //GL11.glDisable(GL11.GL_CULL_FACE);
+    	GL11.glEnable(GL11.GL_BLEND);
+    	//GL11.glBlendFunc(GL11.GL_SRC_COLOR, GL11.GL_DST_ALPHA);
+        GL11.glDisable(GL11.GL_CULL_FACE);
         Matrix4f m = new Matrix4f();
         m.setIdentity();
         m.store(MATRIX4X4_BUFFER);
@@ -282,7 +282,7 @@ public class Visualizer extends FrameWork
         
         //Draw Particles
         m_program.use();
-        setColor(0.5f, 0.5f, 1f, 0.8f);
+        setColor(0.3f, 0.3f, 1f, 0.8f);
         m_buffer[0].draw();
         
         //Swap back to Backbuffer and Draw Texture
