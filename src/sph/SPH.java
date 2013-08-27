@@ -46,7 +46,7 @@ public class SPH {
 	private final int[] dataBufferSize = { 100, 100, 100, 128 };
 	private final int N = n * n * n;
 	private float rho = 0.002f;
-	private final float m = 5000 / ((float) N * vol);
+	private final float m = 4000 / ((float) N * vol);
 	private final float c = 1500f;
 	private final float gamma = 7;
 
@@ -124,11 +124,11 @@ public class SPH {
 		for (int i = 0; i < n; i++) {
 			for (int j = 0; j < n; j++) {
 				for (int k = 0; k < n; k++) {
-					p[cnt++] = (0.05f * j - 0.5f);// +
+					p[cnt++] = (0.06f * j - 0.5f);// +
 													// MathUtil.nextFloat(0.01f);
-					p[cnt++] = (0.05f * i - 0.5f);// +
+					p[cnt++] = (0.06f * i - 0.9f);// +
 													// MathUtil.nextFloat(0.01f);
-					p[cnt++] = (0.05f * k - 0.5f);
+					p[cnt++] = (0.06f * k - 0.5f);
 					p[cnt++] = 0;
 				}
 			}
@@ -219,7 +219,6 @@ public class SPH {
 		long time;
 		
 		while (!vis.isDone()) {
-			
 			if (!vis.isPause()) {
 			
 				time = System.currentTimeMillis();

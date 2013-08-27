@@ -181,21 +181,30 @@ public class Texture
     
     public static Texture create3DTexture(){
     	//Setup Textures
-    	int width = FrameWork.instance().getWidth();
-    	int height = FrameWork.instance().getHeight();
+    	//int width = FrameWork.instance().getWidth();
+    	//int height = FrameWork.instance().getHeight();
+    	int width = 512;
+    	int height = 512;
+    	//System.out.println(GL12.GL_MAX_3D_TEXTURE_SIZE +" "+ width*width*height);
         TextureDescription desc = new TextureDescription();
+        desc.name = "threeDimension";
         desc.target = GL12.GL_TEXTURE_3D;
         desc.type = GL11.GL_FLOAT;
         desc.format = GL11.GL_RGBA;
         desc.internalFormat = GL30.GL_RGB16F;
         desc.width = width;
         desc.height = height;
-        desc.data =  BufferUtils.createFloatBuffer(100*100*10*4);;
+        desc.data =  BufferUtils.createFloatBuffer(width*5*height*4);
 
-    	Texture t = new Texture(4,desc);
-    	
+    	for(int i = 0; i< desc.data.capacity();i++){
+    		desc.data.put(i, 0.8f);
+    	}
+    	desc.data.rewind();
+        
+    	Texture t = new Texture(5,desc);
     	GL11.glEnable(GL12.GL_TEXTURE_3D);
     	int texture3d = GL11.glGenTextures();
+    	
     	GL11.glBindTexture(GL12.GL_TEXTURE_3D, texture3d);
     	GL11.glTexParameteri(GL12.GL_TEXTURE_3D, GL11.GL_TEXTURE_MIN_FILTER, GL11.GL_LINEAR);
     	GL11.glTexParameteri(GL12.GL_TEXTURE_3D, GL11.GL_TEXTURE_MAG_FILTER, GL11.GL_LINEAR);
@@ -204,9 +213,10 @@ public class Texture
     	GL11.glTexParameteri(GL12.GL_TEXTURE_3D, GL12.GL_TEXTURE_WRAP_R, GL11.GL_REPEAT);
     	
     	GL12.glTexImage3D(desc.target, 0, desc.internalFormat, width, height, width, 0, desc.format, GL11.GL_FLOAT, desc.data);
-    	GL13.glActiveTexture(GL13.GL_TEXTURE0 + 4);
+    
+    	GL13.glActiveTexture(GL13.GL_TEXTURE0 + t.getUInt());
     	GL11.glBindTexture(GL12.GL_TEXTURE_3D, texture3d);
-    	checkError();
+    	
     	return t;
     }
     
