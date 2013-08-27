@@ -54,7 +54,7 @@ void main()
     					sina_y,	0,		cosa_y,	0,
     					0,		0,		0,		1);
     */
-    vec4 vPos = //invCamera * vec4(vs_in_pos, 0); //zRot * xRot * yRot * 
+    vec4 vPos = invCamera * vec4(vs_in_pos, 0); //zRot * xRot * yRot * 
     
     fs_in_ViewPos = g_view * vec4(vPos.xyz + vs_in_instance.xyz, 1);
     
