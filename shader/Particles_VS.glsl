@@ -26,7 +26,35 @@ void main()
     fs_in_normal_new = vs_in_normal_new;
     fs_in_tc = vs_in_tc;
     
-    vec4 vPos = invCamera * vec4(vs_in_pos, 0);
+    //rotate to normal
+    /*vec4 currNorm = g_eye - vec4(vs_in_pos, 0);
+    
+    vec4 a = vec4(vs_in_normal_new.x, vs_in_normal_new.y, 0, 0);
+    vec4 b = vec4(currNorm.x, currNorm.y, 0, 0);
+    float cosa_z = dot(a, b)/(length(a)*length(b));
+    float sina_z = length(cross(a.xyz, b.xyz))/(length(a)*length(b));
+    mat4 zRot = mat4(	cosa_z, sina_z,	0, 		0, 
+    					-sina_z,cosa_z,	0, 		0, 
+    					0, 		0, 		1, 		0, 
+    					0, 		0, 		0, 		1);
+    a = vec4(0, vs_in_normal_new.y, vs_in_normal_new.z, 0);
+    b = vec4(0, currNorm.y, currNorm.z, 0);
+    float cosa_x = dot(a, b)/(length(a)*length(b));
+    float sina_x = length(cross(a.xyz, b.xyz))/(length(a)*length(b));
+    mat4 xRot = mat4(	1,		0,		0,		0,
+    					0,		cosa_x,	sina_x,	0,
+    					0,		-sina_x,cosa_x,	0,
+    					0,		0,		0,		1);
+    a = vec4(0, vs_in_normal_new.y, vs_in_normal_new.z, 0);
+    b = vec4(0, currNorm.y, currNorm.z, 0);
+    float cosa_y = dot(a, b)/(length(a)*length(b));
+    float sina_y = length(cross(a.xyz, b.xyz))/(length(a)*length(b));
+    mat4 yRot = mat4(	cosa_y,	0,		-sina_y,0,
+    					0,		1,		0,		0,
+    					sina_y,	0,		cosa_y,	0,
+    					0,		0,		0,		1);
+    */
+    vec4 vPos = //invCamera * vec4(vs_in_pos, 0); //zRot * xRot * yRot * 
     
     fs_in_ViewPos = g_view * vec4(vPos.xyz + vs_in_instance.xyz, 1);
     
