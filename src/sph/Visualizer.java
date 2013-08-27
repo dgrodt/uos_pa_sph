@@ -65,11 +65,11 @@ public class Visualizer extends FrameWork
     protected Params m_demoParams[] = 
         {
             new Params(0.016f, 1.54f, 8.0f, 0.1f, 1.0f, 1.0f, 0, -2, -100.0f),
-            new Params(0.016f, 0.68f, 20.0f, 0.1f, 1.0f, 0.8f, 0, -2, -30.0f),
+            new Params(0.0016f, 0.68f, 20.0f, 0.1f, 1.0f, 0.8f, 0, -2, -30.0f),
             /*new Params(0.0006f, 0.16f, 1000.0f, 1.0f, 1.0f, 0.07f, 0, 0, -1.5f),
             new Params(0.0006f, 0.16f, 1000.0f, 1.0f, 1.0f, 0.07f, 0, 0, -1.5f),
             new Params(0.0019f, 0.32f, 276.0f, 1.0f, 1.0f, 0.07f, 0, 0, -5.0f), */
-            new Params(0.00016f, 0.32f, 272.0f, 0.145f, 1.0f, 0.08f, 0, 0, -5.0f),
+            new Params(0.0002f, 0.32f, 272.0f, 0.145f, 1.0f, 0.08f, 0, 0, -5.0f),
             new Params(0.016f, 6.04f, 0.0f, 1.0f, 1.0f, 0.76f, 0, 0, -50.0f)
         };
     
@@ -124,6 +124,8 @@ public class Visualizer extends FrameWork
     public void init() 
     {
     	
+    	System.out.println("Modulo: " + (2f+(2.2f))/2f);
+    	
     	//Setup Textures
     	int width = FrameWork.instance().getWidth();
     	int height = FrameWork.instance().getHeight();
@@ -138,8 +140,7 @@ public class Visualizer extends FrameWork
     	Texture normalTexture = Texture.create2DTexture("normal",GL11.GL_RGB, GL30.GL_RGB16F, GL11.GL_FLOAT, width, height, 3, null);
     	//Create Frame buffer
         frameBuffer = FrameBuffer.createFrameBuffer("main", true, frameTexture, depthTexture, worldTexture, normalTexture); 
-        frameBuffer.addUniformTexture("g_particles_normals", 3);
-        frameBuffer.addUniformTexture("g_particles_worldpos", 2);
+
         
         //Setup Particle Program
         m_program = new Program();

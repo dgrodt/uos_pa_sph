@@ -85,7 +85,7 @@ public class FrameBuffer {
 		frameBufferProgram.bindUniformBlock("Camera", FrameWork.UniformBufferSlots.CAMERA_BUFFER_SLOT);
 		frameBufferProgram.bindUniformBlock("Color", FrameWork.UniformBufferSlots.COLOR_BUFFER_SLOT);
 		frameBufferProgram.bindUniformBlock("Settings", FrameWork.UniformBufferSlots.SETTINGS_BUFFER_SLOT);
-
+		
         dynamicScreenSquad = GeometryFactory.createDynamicScreenQuad();
 //        transformScreenQuad(0, 0, this.textures[0].getDest().width, this.textures[0].getDest().height);
         
@@ -103,7 +103,7 @@ public class FrameBuffer {
 	    	GL30.glRenderbufferStorage(GL30.GL_RENDERBUFFER, GL30.GL_DEPTH24_STENCIL8, FrameWork.instance().getWidth(), FrameWork.instance().getHeight());
 	    	GL30.glFramebufferRenderbuffer(GL30.GL_FRAMEBUFFER, GL30.GL_DEPTH_STENCIL_ATTACHMENT, GL30.GL_RENDERBUFFER, this.deptStencilID);
 		}
-        IntBuffer drawBuffers = BufferUtils.createIntBuffer(this.textures.length);
+        IntBuffer drawBuffers = BufferUtils.createIntBuffer(this.textures.length+1);
         for(int i=0; i < this.textures.length; ++i) {
             this.textures[i].bind();
             GL32.glFramebufferTexture(GL30.GL_FRAMEBUFFER, GL30.GL_COLOR_ATTACHMENT0 + i, this.textures[i].getId(), 0);
@@ -114,8 +114,8 @@ public class FrameBuffer {
             }                
         }
         GL20.glDrawBuffers(drawBuffers);
-        
 
+        
         return this.checkError();
 	}
 	

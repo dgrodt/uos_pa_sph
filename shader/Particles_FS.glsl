@@ -15,6 +15,7 @@ layout(location = 0) out vec4 fs_out_color;
 layout(location = 1) out float fs_out_depth;
 layout(location = 2) out vec3 fs_out_worldPos;
 layout(location = 3) out vec3 fs_out_normals;
+layout(location = 5) out vec4 fs_out_three;
 void main()
 {
     vec2 tx = 2 * fs_in_tc - 1;
@@ -40,6 +41,7 @@ void main()
     fs_out_color.xyz = g_color.xyz + getLight(worldView, lightPos,  normal);
     fs_out_color.w = clamp(fs_in_normal_new.w, 0f, 6f)/6f;
     
+    fs_out_three = fs_out_color;
     fs_out_depth = fs_in_depth;
     fs_out_worldPos = fs_in_worldPos;
     fs_out_normals = normalize(fs_in_normal_new.xyz);
