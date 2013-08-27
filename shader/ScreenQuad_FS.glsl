@@ -21,7 +21,7 @@ float[]
 
 void main()
 {
-	float blurSize = 1f/768f;
+	float blurSize = 0f/768f;
 	vec2 fragCoords = vec2(fs_in_tc.x, 1-fs_in_tc.y);
 	fs_out_color = texture2D(color, fragCoords);
 /*
