@@ -122,10 +122,7 @@ public class Visualizer extends FrameWork
 
     @Override
     public void init() 
-    {
-    	
-    	System.out.println("Modulo: " + (2f+(2.2f))/2f);
-    	
+    {   	
     	//Setup Textures
     	int width = FrameWork.instance().getWidth();
     	int height = FrameWork.instance().getHeight();

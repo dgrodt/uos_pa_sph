@@ -41,12 +41,12 @@ import sph.helper.Settings;
 
 public class SPH {
 
-	private final int n = 23;
+	private final int n = 15;
 	private final float vol = 1000000;
-	private final int[] dataBufferSize = { 100, 100, 100, 128 };
+	private final int[] dataBufferSize = { 128, 128, 128, 32 };
 	private final int N = n * n * n;
-	private float rho = 0.002f;
-	private final float m = 4000 / ((float) N * vol);
+	private float rho = 0.003f;
+	private final float m = 5000 / ((float) N * vol);
 	private final float c = 1500f;
 	private final float gamma = 7;
 
