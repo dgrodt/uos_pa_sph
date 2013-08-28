@@ -158,19 +158,19 @@ public abstract class FrameWork extends InputAdapter
         
         m_color.create();
         
-        m_settings.create();
+        //m_settings.create();
         
         setColor(1.0f, 1.0f, 1.0f, 1.0f);
         
         uploadCameraBuffer();
         
-        setBlur(10.0f);
+        //setBlur(10.0f);
         
         m_color.bindBufferBase();
         
         m_cameraBuffer.bindBufferBase();
         
-        m_settings.bindBufferBase();
+       // m_settings.bindBufferBase();
         
 //        GLUtil.create();
         

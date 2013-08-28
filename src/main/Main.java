@@ -12,6 +12,6 @@ public class Main
 //        
 //        settings.setVisible(true);
         app.run();
-        System.exit(0);
+        //System.exit(0);
     }
 }
