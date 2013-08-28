@@ -187,7 +187,7 @@ public class Visualizer extends FrameWork
 
     	//GL11.glEnable(GL11.GL_BLEND);
     	//GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-        GL11.glDisable(GL11.GL_CULL_FACE);
+        //GL11.glDisable(GL11.GL_CULL_FACE);
         
     	
     	//Setup Surface Program
@@ -204,8 +204,8 @@ public class Visualizer extends FrameWork
 
     	m_surfaceProgram.use();
        
-    	//GL11.glEnable(GL11.GL_BLEND);
-    	//GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+    	GL11.glEnable(GL11.GL_BLEND);
+    	GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
     	//GL11.glDisable(GL11.GL_CULL_FACE);
     	
         FloatBuffer data = BufferUtils.createFloatBuffer(4);
@@ -351,17 +351,14 @@ public class Visualizer extends FrameWork
         /*
         //Draw Particles
         m_program.use();
-<<<<<<< HEAD
-        setColor(0.3f, 0.3f, 1f, 0.8f);
-=======
         setColor(0.5f, 0.5f, 1f, 1f);
->>>>>>> datastructure
+
         m_buffer[0].draw();
         */
         
         //Draw Surface
         m_surfaceProgram.use();
-        setColor(0.5f, 0.5f, 1f, 1f);
+        setColor(0.5f, 0.5f, 1f, 0.8f);
         m_buffer[2].draw();
         
         
@@ -372,7 +369,7 @@ public class Visualizer extends FrameWork
         Display.update();
         
         
-      // 	clEnqueueAcquireGLObjects(m_queue, m_oglBuffer0, null, null);
+        //clEnqueueAcquireGLObjects(m_queue, m_oglBuffer0, null, null);
         clEnqueueAcquireGLObjects(m_queue, m_oglBuffer1, null, null);
        	clEnqueueAcquireGLObjects(m_queue, m_oglBuffer2, null, null);
        	//clEnqueueAcquireGLObjects(m_queue, m_oglBuffer3, null, null);
