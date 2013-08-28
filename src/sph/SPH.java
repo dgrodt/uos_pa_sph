@@ -37,9 +37,9 @@ import pa.cl.OpenCL;
 import pa.util.BufferHelper;
 import pa.util.IOUtil;
 import pa.util.math.MathUtil;
+import sph.helper.Settings;
 
 public class SPH {
-	
 	/*	NICE PARAMETERS
 	private final int n = 26;
 	private final float vol = 1000;
@@ -80,7 +80,6 @@ public class SPH {
 	private PointerBuffer gws_CellCnt = new PointerBuffer(1);
 	private PointerBuffer gws_SurfaceCnt = new PointerBuffer(1);
 	private FloatBuffer float_buffer = BufferUtils.createFloatBuffer(4 * N);
-	
 	private FloatBuffer body_Pos_buffer = BufferUtils.createFloatBuffer(4 * N);
 	private FloatBuffer body_rho_buffer = BufferUtils.createFloatBuffer(N);
 	private IntBuffer data_buffer = BufferUtils.createIntBuffer(dataBufferSize[0]*dataBufferSize[1]*dataBufferSize[2]*dataBufferSize[3]);
@@ -161,12 +160,12 @@ public class SPH {
 		
 		gws_SurfaceCnt.put(0, 12 * gridSize * gridSize * gridSize);
 		
-		
 		gws_CellCnt.put(0, dataBufferSize[0] * dataBufferSize[1]
 				* dataBufferSize[2]);
 
 		float p[] = new float[N * 4];
 		float v[] = new float[N * 4];
+		float normals[] = new float[N * 4];
 
 		int cnt = 0;
 		for (int i = 0; i < n; i++) {
@@ -195,28 +194,14 @@ public class SPH {
 
 		float surface_grid[] = new float[gridSize*gridSize*gridSize*4];
 		
-		/*
-		new float[] {
-			2, -1, 2,
-			2, -1, 3,
-			3, -1, 2,
-			3, -1.5f, 3,
-		
-		}, new int[] {
-			2,1,0,0,1,2,
-			1,2,3,3,2,1,
-		
-		});
-*/
-		
 		float[] vertices = new float[3 * 12 * gridSize * gridSize * gridSize];
 		int[] indices = new int[12 * gridSize * gridSize * gridSize];
 		
 		if (surface) {
-			buffers = vis.createPositions(surface_grid, vertices, indices, context);
+			buffers = vis.createPositions(surface_grid, normals, context, vertices, indices);
 		}
 		else {
-			buffers = vis.createPositions(p, vertices, indices, context);
+			buffers = vis.createPositions(p, normals, context, vertices, indices);
 		}
 
 		FloatBuffer buffer = BufferUtils.createFloatBuffer(4 * N);
@@ -279,8 +264,7 @@ public class SPH {
 		buffer.put(n_arr);
 		buffer.rewind();
 
-		body_n = clCreateBuffer(context, CL_MEM_READ_WRITE
-				| CL_MEM_COPY_HOST_PTR, buffer);
+		body_n = buffers[3];
 
 		clSetKernelArg(sph_resetData, 0, clDataStructure);
 
@@ -335,7 +319,6 @@ public class SPH {
 
 		clEnqueueNDRangeKernel(queue, sph_calcNewPos, 1, null, gws_BodyCnt,
 				null, null, null);
-
 	}
 
 	public void run() {
@@ -350,7 +333,6 @@ public class SPH {
 		
 				time = System.currentTimeMillis();
 				clEnqueueNDRangeKernel(queue, sph_calcNewRho, 1, null, gws_BodyCnt, null, null, null);
-				System.out.println(System.currentTimeMillis() - time);
 				
 				time = System.currentTimeMillis();
 				clEnqueueNDRangeKernel(queue, sph_resetSurfaceRho, 3, null, gws_GridCnt, null, null, null);
@@ -358,26 +340,53 @@ public class SPH {
 				clEnqueueNDRangeKernel(queue, sph_calcNewSurface, 1, null, gws_BodyCnt, null, null, null);
 				clEnqueueNDRangeKernel(queue, sph_calcNewSurface2, 3, null, gws_CubeCnt, null, null, null);
 				System.out.println(System.currentTimeMillis() - time);
+
+				if(Settings.PROFILING) {
+					OpenCL.clFinish(queue);
+					System.out.println(System.currentTimeMillis() - time);
+				}
 				
 				time = System.currentTimeMillis();
 				clEnqueueNDRangeKernel(queue, sph_calcNewP, 1, null, gws_BodyCnt, null, null, null);
-				System.out.println(System.currentTimeMillis() - time);
+				if(Settings.PROFILING) {
+					OpenCL.clFinish(queue);
+					System.out.println(System.currentTimeMillis() - time);
+				}
 				
-				//clEnqueueNDRangeKernel(queue, sph_calcNewN, 1, null, gws_BodyCnt, null, null, null);
-				//OpenCL.clEnqueueReadBuffer(queue, body_n, CL_FALSE, 0, float_buffer, null, null);
-				//BufferHelper.printBuffer(float_buffer, 4);
-								
-				time = System.currentTimeMillis();
+				/*
+				clEnqueueNDRangeKernel(queue, sph_calcNewN, 1, null, gws_BodyCnt, null, null, null);
+				if(Settings.PROFILING) {
+					OpenCL.clEnqueueReadBuffer(queue, body_n, CL_FALSE, 0, float_buffer, null, null);
+					BufferHelper.printBuffer(float_buffer, 4);
+				
+					//clEnqueueNDRangeKernel(queue, sph_calcNewN, 1, null,
+					//		gws_BodyCnt, null, null, null);
+					time = System.currentTimeMillis();
+				}
+				*/
+				
 				clEnqueueNDRangeKernel(queue, sph_calcNewV, 1, null, gws_BodyCnt, null, null, null);
-				System.out.println(System.currentTimeMillis() - time);
-								
+				if(Settings.PROFILING) {
+					OpenCL.clFinish(queue);
+					System.out.println(System.currentTimeMillis() - time);
+				}
+
 				time = System.currentTimeMillis();
 				clEnqueueNDRangeKernel(queue, sph_resetData, 1, null, gws_CellCnt, null, null, null);
-				System.out.println(System.currentTimeMillis() - time);
-															
+				if(Settings.PROFILING) {
+					OpenCL.clFinish(queue);
+					System.out.println(System.currentTimeMillis() - time);
+					// OpenCL.clEnqueueReadBuffer(queue, clDataStructure,
+					// CL_FALSE, 0, int_buffer, null, null);
+					// BufferHelper.printBuffer(int_buffer, 8*8*8*10);
+				}
 				time = System.currentTimeMillis();
 				clEnqueueNDRangeKernel(queue, sph_calcNewPos, 1, null, gws_BodyCnt, null, null, null);
-				System.out.println(System.currentTimeMillis() - time);
+				if(Settings.PROFILING) {
+					OpenCL.clFinish(queue);
+					System.out.println(System.currentTimeMillis() - time);
+					System.out.println("-------------------------");
+				}
 
 			}
 			time = System.currentTimeMillis();
@@ -392,33 +401,48 @@ public class SPH {
 	public void close() {
 		vis.close();
 
+		if (sph_calcNewRho != null) {
+			clReleaseKernel(sph_calcNewRho);
+		}
+		if (sph_calcNewRho != null) {
+			clReleaseKernel(sph_calcNewN); 
+		}
+		if (sph_resetData != null) {
+			clReleaseKernel(sph_resetData);
+		}
+		if (sph_calcNewSurface != null) {
+			clReleaseKernel(sph_calcNewSurface);
+		}
+		if (sph_calcNewSurface2 != null) {
+			clReleaseKernel(sph_calcNewSurface2);
+		}
+		if (sph_resetSurfaceRho != null) {
+			clReleaseKernel(sph_resetSurfaceRho);
+		}
+		if (sph_resetSurfaceInd != null) {
+			clReleaseKernel(sph_resetSurfaceInd);
+		}
 		if (sph_calcNewP != null) {
 			clReleaseKernel(sph_calcNewP);
-			program = null;
 		}
 		if (sph_calcNewPos != null) {
 			clReleaseKernel(sph_calcNewPos);
-			program = null;
 		}
 		if (sph_calcNewV != null) {
 			clReleaseKernel(sph_calcNewV);
-			program = null;
 		}
 		if (program != null) {
 			clReleaseProgram(program);
 			program = null;
 		}
-
 		if (queue != null) {
 			clReleaseCommandQueue(queue);
 			queue = null;
 		}
-
 		if (context != null) {
 			clReleaseContext(context);
 			context = null;
 		}
-
 		CLUtil.destroyCL();
 	}
 

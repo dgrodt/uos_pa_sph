@@ -1,6 +1,8 @@
 package sph;
 
+import static pa.cl.OpenCL.CL_MEM_COPY_HOST_PTR;
 import static pa.cl.OpenCL.CL_MEM_READ_WRITE;
+import static pa.cl.OpenCL.clCreateBuffer;
 import static pa.cl.OpenCL.clCreateFromGLBuffer;
 import static pa.cl.OpenCL.clEnqueueAcquireGLObjects;
 import static pa.cl.OpenCL.clEnqueueReleaseGLObjects;
@@ -97,6 +99,9 @@ public class Visualizer extends FrameWork
     protected CLMem m_oglBuffer0;
     protected CLMem m_oglBuffer1;
     protected CLMem m_oglBuffer2;
+    protected CLMem m_oglBuffer3;
+
+    protected FloatBuffer settingsBuffer;
     
     private boolean m_pause = false;
     
@@ -130,33 +135,40 @@ public class Visualizer extends FrameWork
 
     	
     	//First Texture
-    	Texture frameTexture = Texture.create2DTexture(GL11.GL_RGBA, GL30.GL_RGBA16F, GL11.GL_FLOAT, width, height, 0, null);
+    	Texture frameTexture = Texture.create2DTexture("color", GL11.GL_RGBA, GL30.GL_RGBA16F, GL11.GL_FLOAT, width, height, 0, null);
     	//Depth Informations
-    	Texture depthTexture = Texture.create2DTexture(GL11.GL_RED,  GL30.GL_R16F,    GL11.GL_FLOAT, width, height, 1, null);
+    	Texture depthTexture = Texture.create2DTexture("depth",GL11.GL_RED,  GL30.GL_R16F,    GL11.GL_FLOAT, width, height, 1, null);
     	//World Coordinates
-    	Texture worldTexture = Texture.create2DTexture(GL11.GL_RGB, GL30.GL_RGB16F, GL11.GL_FLOAT, width, height, 2, null);
+    	Texture worldTexture = Texture.create2DTexture("world",GL11.GL_RGB, GL30.GL_RGB16F, GL11.GL_FLOAT, width, height, 2, null);
+    	//Particle normals
+    	Texture normalTexture = Texture.create2DTexture("normal",GL11.GL_RGB, GL30.GL_RGB16F, GL11.GL_FLOAT, width, height, 3, null);
     	//Create Frame buffer
         frameBuffer = FrameBuffer.createFrameBuffer("main", true, frameTexture, depthTexture, worldTexture);        
-        
-        //Setup Particle Program
-        m_program = new Program();
-        m_program.create("shader/Particles_VS.glsl", "shader/Particles_FS.glsl");
-        m_program.bindAttributeLocation("vs_in_pos", 0);
-        m_program.bindAttributeLocation("vs_in_normal", 1);
-        m_program.bindAttributeLocation("vs_in_tc", 2);
-        m_program.bindAttributeLocation("vs_in_instance", 3);
-        m_program.linkAndValidate();
-        m_program.bindUniformBlock("Camera", FrameWork.UniformBufferSlots.CAMERA_BUFFER_SLOT);
-        m_program.bindUniformBlock("Color", FrameWork.UniformBufferSlots.COLOR_BUFFER_SLOT);
-        m_program.use();
-
-        Matrix4f m = new Matrix4f();
-        m.setIdentity();
-        m.store(MATRIX4X4_BUFFER);
-        MATRIX4X4_BUFFER.flip();
-  
-        m_invCameraAdress = m_program.getUniformLocation("invCamera");
-        GL20.glUniformMatrix4(m_invCameraAdress, false, MATRIX4X4_BUFFER);
+        GLUtil.checkError();
+//        //Setup Particle Program
+//        m_program = new Program();
+//        m_program.create("shader/Particles_VS.glsl", "shader/Particles_FS.glsl");
+//        m_program.bindAttributeLocation("vs_in_pos", 0);
+//        m_program.bindAttributeLocation("vs_in_normal", 1);
+//        m_program.bindAttributeLocation("vs_in_tc", 2);
+//        m_program.bindAttributeLocation("vs_in_instance", 3);
+//        m_program.bindAttributeLocation("vs_in_normal_new", 4);
+//        m_program.linkAndValidate();
+//        m_program.bindUniformBlock("Camera", FrameWork.UniformBufferSlots.CAMERA_BUFFER_SLOT);
+//        m_program.bindUniformBlock("Color", FrameWork.UniformBufferSlots.COLOR_BUFFER_SLOT);
+//        m_program.bindUniformBlock("Settings", FrameWork.UniformBufferSlots.SETTINGS_BUFFER_SLOT);
+//        m_program.use();
+////    	GL11.glEnable(GL11.GL_BLEND);
+////    	GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+//        GL11.glDisable(GL11.GL_CULL_FACE);
+//
+//        Matrix4f m = new Matrix4f();
+//        m.setIdentity();
+//        m.store(MATRIX4X4_BUFFER);
+//        MATRIX4X4_BUFFER.flip();
+//  
+//        m_invCameraAdress = m_program.getUniformLocation("invCamera");
+//        GL20.glUniformMatrix4(m_invCameraAdress, false, MATRIX4X4_BUFFER);
         
         //Setup Box Program
     	m_quadProgram = new Program();
@@ -168,9 +180,12 @@ public class Visualizer extends FrameWork
     	m_quadProgram.linkAndValidate();
     	m_quadProgram.bindUniformBlock("Camera", FrameWork.UniformBufferSlots.CAMERA_BUFFER_SLOT);
     	m_quadProgram.bindUniformBlock("Color", FrameWork.UniformBufferSlots.COLOR_BUFFER_SLOT);
+    	m_quadProgram.bindUniformBlock("Settings", FrameWork.UniformBufferSlots.SETTINGS_BUFFER_SLOT);
 
     	m_quadProgram.use();
-//        GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+
+    	//GL11.glEnable(GL11.GL_BLEND);
+    	//GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
         GL11.glDisable(GL11.GL_CULL_FACE);
         
     	
@@ -184,6 +199,7 @@ public class Visualizer extends FrameWork
     	m_surfaceProgram.linkAndValidate();
     	m_surfaceProgram.bindUniformBlock("Camera", FrameWork.UniformBufferSlots.CAMERA_BUFFER_SLOT);
     	m_surfaceProgram.bindUniformBlock("Color", FrameWork.UniformBufferSlots.COLOR_BUFFER_SLOT);
+    	m_surfaceProgram.bindUniformBlock("Settings", FrameWork.UniformBufferSlots.SETTINGS_BUFFER_SLOT);
 
     	m_surfaceProgram.use();
        
@@ -194,33 +210,61 @@ public class Visualizer extends FrameWork
         data.flip();
         m_color.loadFloatData(data, GL15.GL_DYNAMIC_DRAW);
         
+        //setBlur(10.0f);
+        
         m_camera.setSpeed(0.25f);
         
         m_camera.lookAt(new Vector3f(0,0, m_currentParams.m_z), new Vector3f());
         uploadCameraBuffer();
-        
+        GLUtil.checkError();
     }
 
     @Override
     public void close() 
     {
-        clEnqueueReleaseGLObjects(m_queue, m_oglBuffer0, null, null);
-        //clEnqueueReleaseGLObjects(m_queue, m_oglBuffer1, null, null);
+      
+    	
+    	
+       
         if(m_oglBuffer0 != null)
         {
+        	clEnqueueReleaseGLObjects(m_queue, m_oglBuffer0, null, null);
             clReleaseMemObject(m_oglBuffer0);
             m_oglBuffer0 = null;
         }
         if(m_oglBuffer1 != null)
         {
+        	clEnqueueReleaseGLObjects(m_queue, m_oglBuffer1, null, null);
             clReleaseMemObject(m_oglBuffer1);
             m_oglBuffer1 = null;
         }
+        if(m_oglBuffer2 != null)
+        {
+        	clEnqueueReleaseGLObjects(m_queue, m_oglBuffer2, null, null);
+            clReleaseMemObject(m_oglBuffer2);
+            m_oglBuffer2 = null;
+        }
+        if(m_oglBuffer3 != null)
+        {
+        	clEnqueueReleaseGLObjects(m_queue, m_oglBuffer3, null, null);
+            clReleaseMemObject(m_oglBuffer3);
+            m_oglBuffer3 = null;
+        }
         
-        m_program.delete();
-        m_buffer[0].delete();
-        m_buffer[1].delete();
-        m_buffer[2].delete();
+        m_quadProgram.delete();
+        m_surfaceProgram.delete();
+        if(m_buffer[0] != null)
+        {
+        	m_buffer[0].delete();	
+        }
+        if(m_buffer[1] != null)
+        {
+        	m_buffer[1].delete();	
+        }
+        if(m_buffer[2] != null)
+        {
+        	m_buffer[2].delete();	
+        }
         frameBuffer.delete();
         destroy();
     }
@@ -232,13 +276,14 @@ public class Visualizer extends FrameWork
         clSetKernelArg(m_kernel, 2, m_currentParams.m_timeStep);
     }
     
-    public CLMem[] createPositions(float[] pos, float[] vertices, int[] indices, CLContext context) {
-		if (m_buffer[0] != null) {
-			m_buffer[0].delete();
-		}
+    public CLMem[] createPositions(float[] pos, float[] normal, CLContext context, float[] vertices, int[] indices) {
 
-		m_buffer[0] = GeometryFactory.createParticles(pos,
-				m_currentParams.m_pointSize * 0.9f, 4);
+//		if (m_buffer[0] != null) {
+//			m_buffer[0].delete();
+//		}
+//
+//		m_buffer[0] = GeometryFactory.createParticles(pos, normal,
+//				m_currentParams.m_pointSize * 0.9f, 4);
 
 		if (m_buffer[1] != null) {
 			m_buffer[1].delete();
@@ -251,36 +296,26 @@ public class Visualizer extends FrameWork
 		}
 		
 		m_buffer[2] = GeometryFactory.createSurface(new float[] { 0, 0, 0 }, vertices, indices);
-				
-				/*
-				new float[] {
-					2, -1, 2,
-					2, -1, 3,
-					3, -1, 2,
-					3, -1.5f, 3,
-				
-				}, new int[] {
-					2,1,0,0,1,2,
-					1,2,3,3,2,1,
-				
-				});
-*/
 		
-		m_oglBuffer0 = clCreateFromGLBuffer(context, CL_MEM_READ_WRITE,
-				m_buffer[0].getInstanceBuffer(0).getId());
+//		m_oglBuffer0 = clCreateFromGLBuffer(context, CL_MEM_READ_WRITE,
+//				m_buffer[0].getInstanceBuffer(0).getId());
 		m_oglBuffer1 = clCreateFromGLBuffer(context, CL_MEM_READ_WRITE,
 				m_buffer[2].getVertexBuffer().getId());
 		m_oglBuffer2 = clCreateFromGLBuffer(context, CL_MEM_READ_WRITE,
 				m_buffer[2].getIndexBuffer().getId());
 
-		CLMem pair[] = new CLMem[3];
-		pair[0] = m_oglBuffer0;
+		//m_oglBuffer3 = clCreateFromGLBuffer(context, CL_MEM_READ_WRITE, m_buffer[0].getInstanceBuffer(1).getId());
+
+		CLMem pair[] = new CLMem[4];
+		//pair[0] = m_oglBuffer0;
 		pair[1] = m_oglBuffer1;
 		pair[2] = m_oglBuffer2;
-		
-		clEnqueueAcquireGLObjects(m_queue, m_oglBuffer0, null, null);
+		//pair[3] = m_oglBuffer3;
+
+//		clEnqueueAcquireGLObjects(m_queue, m_oglBuffer0, null, null);
 		clEnqueueAcquireGLObjects(m_queue, m_oglBuffer1, null, null);
 		clEnqueueAcquireGLObjects(m_queue, m_oglBuffer2, null, null);
+		//clEnqueueAcquireGLObjects(m_queue, m_oglBuffer3, null, null);
 
 		return pair;
 	}
@@ -292,13 +327,13 @@ public class Visualizer extends FrameWork
     @Override
     public void render() 
     {
+
     	
 
-    	GLUtil.checkError();
-
-    	clEnqueueReleaseGLObjects(m_queue, m_oglBuffer0, null, null);
+    	//clEnqueueReleaseGLObjects(m_queue, m_oglBuffer0, null, null);
        	clEnqueueReleaseGLObjects(m_queue, m_oglBuffer1, null, null);
        	clEnqueueReleaseGLObjects(m_queue, m_oglBuffer2, null, null);
+       //	clEnqueueReleaseGLObjects(m_queue, m_oglBuffer3, null, null);
     	   	
         updateInput();
         //Bind and Clear Framebuffer
@@ -330,13 +365,14 @@ public class Visualizer extends FrameWork
         Display.update();
         
         
-       	clEnqueueAcquireGLObjects(m_queue, m_oglBuffer0, null, null);
+      // 	clEnqueueAcquireGLObjects(m_queue, m_oglBuffer0, null, null);
         clEnqueueAcquireGLObjects(m_queue, m_oglBuffer1, null, null);
        	clEnqueueAcquireGLObjects(m_queue, m_oglBuffer2, null, null);
-       	
+       	//clEnqueueAcquireGLObjects(m_queue, m_oglBuffer3, null, null);
+
         m_timer.tick();
         Display.setTitle("SPH Simulation (FPS: "+m_timer.getFps()+")");
-       
+        GLUtil.checkError();
     }
     
     public boolean isDone()
@@ -348,19 +384,19 @@ public class Visualizer extends FrameWork
     public void processMouseMoved(int x, int y, int dx, int dy) 
     {
         super.processMouseMoved(x, y, dx, dy);
-        if(m_enableCamera && Mouse.isGrabbed())
-        {
-            m_program.use();
-            Matrix4f mat = new Matrix4f();
-            mat.rotate(m_camera.getPhi(), new Vector3f(0, 1, 0));
-            mat.rotate(m_camera.getTheta(), new Vector3f(1, 0, 0));
-            
-            mat.store(MATRIX4X4_BUFFER);
-            MATRIX4X4_BUFFER.position(0);
-            
-            GL20.glUniformMatrix4(m_invCameraAdress, false, MATRIX4X4_BUFFER);
-            
-        }
+//        if(m_enableCamera && Mouse.isGrabbed())
+//        {
+//            m_program.use();
+//            Matrix4f mat = new Matrix4f();
+//            mat.rotate(m_camera.getPhi(), new Vector3f(0, 1, 0));
+//            mat.rotate(m_camera.getTheta(), new Vector3f(1, 0, 0));
+//            
+//            mat.store(MATRIX4X4_BUFFER);
+//            MATRIX4X4_BUFFER.position(0);
+//            
+//            GL20.glUniformMatrix4(m_invCameraAdress, false, MATRIX4X4_BUFFER);
+//            
+//        }
     }
     public void processKeyPressed(int key)
     {
@@ -368,6 +404,20 @@ public class Visualizer extends FrameWork
         if(key == Keyboard.KEY_P)
         {
             m_pause = !m_pause;
+        }
+        if(key == Keyboard.KEY_NUMPAD1)
+        {
+            float blur = SETTINGS_BUFFER.get(0);
+            blur -= 0.5f;
+            setBlur(Math.max(Math.min(blur, 20.0f), 0));
+            System.out.println("set blur size to: "+ Math.max(Math.min(blur, 20.0f), 0));
+        }
+        if(key == Keyboard.KEY_NUMPAD3)
+        {
+            float blur = SETTINGS_BUFFER.get(0);
+            blur += 0.5f;
+            setBlur(Math.max(Math.min(blur, 20.0f), 0));
+            System.out.println("set blur size to: "+ Math.max(Math.min(blur, 20.0f), 0));
         }
     }
     

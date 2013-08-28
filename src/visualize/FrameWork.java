@@ -32,6 +32,7 @@ public abstract class FrameWork extends InputAdapter
         public static int CAMERA_BUFFER_SLOT = 0;
         public static int MODEL_BUFFER_SLOT  = 1;
         public static int COLOR_BUFFER_SLOT  = 2;
+        public static int SETTINGS_BUFFER_SLOT  = 3;
     }
     
     private static FrameWork m_sInstance;
@@ -44,6 +45,7 @@ public abstract class FrameWork extends InputAdapter
     protected Camera m_camera;
     protected UniformBuffer m_cameraBuffer = new UniformBuffer(UniformBufferSlots.CAMERA_BUFFER_SLOT);
     protected UniformBuffer m_color = new UniformBuffer(UniformBufferSlots.COLOR_BUFFER_SLOT);
+    protected UniformBuffer m_settings = new UniformBuffer(UniformBufferSlots.SETTINGS_BUFFER_SLOT);
     protected InputHandler m_inputHandler;
     protected boolean m_done = false;
     protected boolean m_vsync;
@@ -60,6 +62,7 @@ public abstract class FrameWork extends InputAdapter
     private static final FloatBuffer CAMERA_BUFFER = BufferUtils.createFloatBuffer(32 + 4);
     protected static final FloatBuffer MATRIX4X4_BUFFER = BufferUtils.createFloatBuffer(16);
     protected static final FloatBuffer FLOAT4_BUFFER = BufferUtils.createFloatBuffer(4);
+    protected static final FloatBuffer SETTINGS_BUFFER = BufferUtils.createFloatBuffer(1);
     
     private static final int REQU_GL_MAJOR = 3;
     private static final int REQU_GL_MINOR = 1;
@@ -101,6 +104,11 @@ public abstract class FrameWork extends InputAdapter
         FLOAT4_BUFFER.position(0);
 
         m_color.loadFloatData(FLOAT4_BUFFER, GL15.GL_DYNAMIC_DRAW);
+    }
+    
+    public void setBlur(float blurSize) {
+    	SETTINGS_BUFFER.put(0, blurSize);
+        m_settings.loadFloatData(SETTINGS_BUFFER, GL15.GL_DYNAMIC_DRAW);
     }
     
     public int getWidth()
@@ -150,13 +158,19 @@ public abstract class FrameWork extends InputAdapter
         
         m_color.create();
         
+        //m_settings.create();
+        
         setColor(1.0f, 1.0f, 1.0f, 1.0f);
         
         uploadCameraBuffer();
         
+        //setBlur(10.0f);
+        
         m_color.bindBufferBase();
         
         m_cameraBuffer.bindBufferBase();
+        
+       // m_settings.bindBufferBase();
         
 //        GLUtil.create();
         
@@ -238,6 +252,7 @@ public abstract class FrameWork extends InputAdapter
     {
         m_cameraBuffer.delete();
         m_color.delete();
+        m_settings.delete();
         
         GLUtil.destroy();
         Mouse.destroy();
