@@ -329,7 +329,7 @@ global uint* data
 	}
 }
 
-kernel void calc_NewSurfaceNormal (
+kernel void sph_CalcNewSurfaceNormal (
 global int* surface_grid_rho,
 global float4* surface_normal,
 const int gridSize

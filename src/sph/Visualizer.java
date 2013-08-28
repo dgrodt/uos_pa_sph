@@ -307,7 +307,7 @@ public class Visualizer extends FrameWork
 		m_oglBuffer2 = clCreateFromGLBuffer(context, CL_MEM_READ_WRITE,
 				m_buffer[2].getIndexBuffer().getId());
 
-		m_oglBuffer3 = null; //clCreateFromGLBuffer(context, CL_MEM_READ_WRITE, m_buffer[2].getInstanceBuffer(1).getId());
+		m_oglBuffer3 = clCreateFromGLBuffer(context, CL_MEM_READ_WRITE, m_buffer[2].getIndexBuffer().getId());
 
 		CLMem pair[] = new CLMem[4];
 		//pair[0] = m_oglBuffer0;
