@@ -50,12 +50,12 @@ public class SPH {
 	private final float m = 5 / ((float) N * vol);
     */
 	/*	NICE PARAMETERS */
-	private final int n = 26;
-	private final int gridSize = 30;
+	private final int n = 21;
+	private final int gridSize = 40;
 	private final float vol = 1000;
-	private final int[] dataBufferSize = { 24, 24, 24, 64 };
+	private final int[] dataBufferSize = { 32, 32, 32, 64 };
 	private final int N = n * n * n;
-	private float rho = 0.002f;
+	private float rho = 0.003f;
 	private final float m = 5 / ((float) N * vol);
 	/*
 	kernel-Params:
@@ -331,17 +331,19 @@ public class SPH {
 		
 		while (!vis.isDone()) {
 			if (!vis.isPause()) {
-		
-				time = System.currentTimeMillis();
+				
+				if(Settings.PROFILING) {
+					time = System.currentTimeMillis();
+				}
 				clEnqueueNDRangeKernel(queue, sph_calcNewRho, 1, null, gws_BodyCnt, null, null, null);
 				
-				time = System.currentTimeMillis();
+				if(Settings.PROFILING) {
+					time = System.currentTimeMillis();
+				}
 				clEnqueueNDRangeKernel(queue, sph_resetSurfaceRho, 3, null, gws_GridCnt, null, null, null);
 				clEnqueueNDRangeKernel(queue, sph_resetSurfaceInd, 1, null, gws_SurfaceCnt, null, null, null);
 				clEnqueueNDRangeKernel(queue, sph_calcNewSurface, 1, null, gws_BodyCnt, null, null, null);
 				clEnqueueNDRangeKernel(queue, sph_calcNewSurface2, 3, null, gws_CubeCnt, null, null, null);
-				System.out.println(System.currentTimeMillis() - time);
-
 				if(Settings.PROFILING) {
 					OpenCL.clFinish(queue);
 					System.out.println(System.currentTimeMillis() - time);
@@ -392,8 +394,10 @@ public class SPH {
 			}
 			time = System.currentTimeMillis();
 			vis.visualize();
-			System.out.println(System.currentTimeMillis() - time);
-			System.out.println("-------------------------");
+			if(Settings.PROFILING) {
+				System.out.println(System.currentTimeMillis() - time);
+				System.out.println("-------------------------");
+			}
 
 		}
 		close();

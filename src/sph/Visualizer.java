@@ -158,7 +158,7 @@ public class Visualizer extends FrameWork
 //        m_program.bindUniformBlock("Color", FrameWork.UniformBufferSlots.COLOR_BUFFER_SLOT);
 //        m_program.bindUniformBlock("Settings", FrameWork.UniformBufferSlots.SETTINGS_BUFFER_SLOT);
 //        m_program.use();
-////    	GL11.glEnable(GL11.GL_BLEND);
+//    	GL11.glEnable(GL11.GL_BLEND);
 ////    	GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
 //        GL11.glDisable(GL11.GL_CULL_FACE);
 //
@@ -204,7 +204,9 @@ public class Visualizer extends FrameWork
 
     	m_surfaceProgram.use();
        
-    	
+    	//GL11.glEnable(GL11.GL_BLEND);
+    	//GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+    	//GL11.glDisable(GL11.GL_CULL_FACE);
     	
         FloatBuffer data = BufferUtils.createFloatBuffer(4);
         data.put(0.5f); data.put(1); data.put(0); data.put(1);

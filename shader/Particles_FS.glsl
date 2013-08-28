@@ -39,7 +39,7 @@ void main()
     //fs_out_color.z = clamp(fs_out_color.z, 0.5, 1);
     //fs_out_color.w = 1;
     fs_out_color.xyz = g_color.xyz + getLight(worldView, lightPos,  normal);
-    fs_out_color.w = clamp(fs_in_normal_new.w, 0f, 6f)/6f;
+    fs_out_color.w = 0.8;
     
     fs_out_three = fs_out_color;
     fs_out_depth = fs_in_depth;
