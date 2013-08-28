@@ -39,16 +39,34 @@ import pa.util.IOUtil;
 import pa.util.math.MathUtil;
 
 public class SPH {
-
-	private final int n = 23;
-	private final float vol = 1000000;
-	private final int[] dataBufferSize = { 32, 32, 32, 64 };
+	
+	/*	NICE PARAMETERS
+	private final int n = 26;
+	private final float vol = 1000;
+	private final int[] dataBufferSize = { 24, 24, 24, 64 };
 	private final int N = n * n * n;
 	private float rho = 0.002f;
-	private final float m = 5000 / ((float) N * vol);
+	private final float m = 5 / ((float) N * vol);
+	
+	kernel-Params:
+	#define BUFFER_SIZE_SIDE 24
+	#define BUFFER_SIZE_DEPTH 64
+	#define OFFSET 1
+	*/
+	
+	
+	private final int n = 26;
+	private final int gridSize = 30;
+	private final float vol = 1000;
+	private final int[] dataBufferSize = { 24, 24, 24, 64 };
+	private final int N = n * n * n;
+	private float rho = 0.002f;
+	private final float m = 5 / ((float) N * vol);
 	private final float c = 1500f;
 	private final float gamma = 7;
 
+	private final boolean surface = true;
+	
 	private static SPH sph = null;
 
 	private Visualizer vis;
@@ -57,8 +75,16 @@ public class SPH {
 	private CLCommandQueue queue;
 	private CLContext context;
 	private PointerBuffer gws_BodyCnt = new PointerBuffer(1);
+	private PointerBuffer gws_GridCnt = new PointerBuffer(3);
+	private PointerBuffer gws_CubeCnt = new PointerBuffer(3);
 	private PointerBuffer gws_CellCnt = new PointerBuffer(1);
+	private PointerBuffer gws_SurfaceCnt = new PointerBuffer(1);
 	private FloatBuffer float_buffer = BufferUtils.createFloatBuffer(4 * N);
+	
+	private FloatBuffer body_Pos_buffer = BufferUtils.createFloatBuffer(4 * N);
+	private FloatBuffer body_rho_buffer = BufferUtils.createFloatBuffer(N);
+	private IntBuffer data_buffer = BufferUtils.createIntBuffer(dataBufferSize[0]*dataBufferSize[1]*dataBufferSize[2]*dataBufferSize[3]);
+	
 	// private IntBuffer int_buffer =
 	// BufferUtils.createIntBuffer(dataBufferSize[0]*dataBufferSize[1]*dataBufferSize[2]*dataBufferSize[3]);
 
@@ -68,16 +94,24 @@ public class SPH {
 	private CLKernel sph_calcNewRho;
 	private CLKernel sph_calcNewN;
 	private CLKernel sph_resetData;
+	private CLKernel sph_calcNewSurface;
+	private CLKernel sph_calcNewSurface2;
+	private CLKernel sph_resetSurfaceRho;
+	private CLKernel sph_resetSurfaceInd;
 
 	private CLMem[] buffers;
 
 	private CLMem clDataStructure;
 
 	private CLMem body_Pos;
+	private CLMem surface_Pos;
+	private CLMem surface_Ind;
+	private CLMem surface_grid_rho;
 	private CLMem body_V;
 	private CLMem body_P;
 	private CLMem body_rho;
 	private CLMem body_n;
+	private CLMem COUNT;
 
 	private boolean initialized = false;
 
@@ -109,9 +143,25 @@ public class SPH {
 		sph_calcNewRho = clCreateKernel(program, "sph_CalcNewRho");
 		sph_calcNewN = clCreateKernel(program, "sph_CalcNewN");
 		sph_resetData = clCreateKernel(program, "sph_resetData");
+		sph_calcNewSurface = clCreateKernel(program, "sph_CalcNewSurface");
+		sph_calcNewSurface2 = clCreateKernel(program, "sph_CalcNewSurface2");
+		sph_resetSurfaceRho = clCreateKernel(program, "sph_resetSurfaceRho");
+		sph_resetSurfaceInd = clCreateKernel(program, "sph_resetSurfaceInd");
 		vis.setKernelAndQueue(sph_calcNewV, queue);
 
 		gws_BodyCnt.put(0, N);
+		
+		gws_GridCnt.put(0, gridSize);
+		gws_GridCnt.put(1, gridSize);
+		gws_GridCnt.put(2, gridSize);
+		
+		gws_CubeCnt.put(0, gridSize);
+		gws_CubeCnt.put(1, gridSize);
+		gws_CubeCnt.put(2, gridSize);
+		
+		gws_SurfaceCnt.put(0, 12 * gridSize * gridSize * gridSize);
+		
+		
 		gws_CellCnt.put(0, dataBufferSize[0] * dataBufferSize[1]
 				* dataBufferSize[2]);
 
@@ -122,11 +172,11 @@ public class SPH {
 		for (int i = 0; i < n; i++) {
 			for (int j = 0; j < n; j++) {
 				for (int k = 0; k < n; k++) {
-					p[cnt++] = (0.06f * j - 0.5f);// +
+					p[cnt++] = (0.05f * j - 0.5f);// +
 													// MathUtil.nextFloat(0.01f);
-					p[cnt++] = (0.06f * i - 0.9f);// +
+					p[cnt++] = (0.05f * i - 0.9f);// +
 													// MathUtil.nextFloat(0.01f);
-					p[cnt++] = (0.06f * k - 0.5f);
+					p[cnt++] = (0.05f * k - 0.5f);
 					p[cnt++] = 0;
 				}
 			}
@@ -137,8 +187,37 @@ public class SPH {
 
 		clDataStructure = clCreateBuffer(context, CL_MEM_READ_WRITE
 				| CL_MEM_COPY_HOST_PTR, dataStructure);
+		
+		IntBuffer COUNT_buffer = BufferUtils.createIntBuffer(1);
 
-		buffers = vis.createPositions(p, context);
+		COUNT = clCreateBuffer(context, CL_MEM_READ_WRITE
+				| CL_MEM_COPY_HOST_PTR, COUNT_buffer);
+
+		float surface_grid[] = new float[gridSize*gridSize*gridSize*4];
+		
+		/*
+		new float[] {
+			2, -1, 2,
+			2, -1, 3,
+			3, -1, 2,
+			3, -1.5f, 3,
+		
+		}, new int[] {
+			2,1,0,0,1,2,
+			1,2,3,3,2,1,
+		
+		});
+*/
+		
+		float[] vertices = new float[3 * 12 * gridSize * gridSize * gridSize];
+		int[] indices = new int[12 * gridSize * gridSize * gridSize];
+		
+		if (surface) {
+			buffers = vis.createPositions(surface_grid, vertices, indices, context);
+		}
+		else {
+			buffers = vis.createPositions(p, vertices, indices, context);
+		}
 
 		FloatBuffer buffer = BufferUtils.createFloatBuffer(4 * N);
 		buffer.put(v);
@@ -146,8 +225,33 @@ public class SPH {
 
 		body_V = clCreateBuffer(context, CL_MEM_READ_WRITE
 				| CL_MEM_COPY_HOST_PTR, buffer);
-		body_Pos = buffers[0];
-
+		
+		
+		if (surface) {
+			surface_Pos = buffers[1];
+			surface_Ind = buffers[2];
+			buffer = BufferUtils.createFloatBuffer(4 * N);
+			buffer.put(p);
+			buffer.rewind();
+			body_Pos = clCreateBuffer(context, CL_MEM_READ_WRITE
+					| CL_MEM_COPY_HOST_PTR, buffer);
+		
+		}
+		else {
+			body_Pos = buffers[0];
+			buffer = BufferUtils.createFloatBuffer(4 * gridSize * gridSize * gridSize);
+			buffer.put(surface_grid);
+			buffer.rewind();
+			surface_Pos = clCreateBuffer(context, CL_MEM_READ_WRITE
+					| CL_MEM_COPY_HOST_PTR, buffer);
+		}
+		
+		
+		IntBuffer int_buffer = BufferUtils.createIntBuffer(gridSize * gridSize * gridSize);
+		surface_grid_rho = clCreateBuffer(context, CL_MEM_READ_WRITE
+				| CL_MEM_COPY_HOST_PTR, int_buffer);
+		
+	
 		float P_arr[] = new float[N];
 
 		buffer = BufferUtils.createFloatBuffer(N);
@@ -185,6 +289,26 @@ public class SPH {
 		clSetKernelArg(sph_calcNewRho, 2, m);
 		clSetKernelArg(sph_calcNewRho, 3, clDataStructure);
 
+		clSetKernelArg(sph_resetSurfaceRho, 0, surface_grid_rho);
+		clSetKernelArg(sph_resetSurfaceRho, 1, COUNT);
+		
+		clSetKernelArg(sph_resetSurfaceInd, 0, surface_Ind);
+		
+		clSetKernelArg(sph_calcNewSurface, 0, body_Pos);
+		clSetKernelArg(sph_calcNewSurface, 1, surface_Pos);
+		clSetKernelArg(sph_calcNewSurface, 2, body_rho);
+		clSetKernelArg(sph_calcNewSurface, 3, surface_grid_rho);
+		clSetKernelArg(sph_calcNewSurface, 4, m);
+		clSetKernelArg(sph_calcNewSurface, 5, gridSize);
+		clSetKernelArg(sph_calcNewSurface, 6, clDataStructure);
+		
+		clSetKernelArg(sph_calcNewSurface2, 0, surface_Pos);
+		clSetKernelArg(sph_calcNewSurface2, 1, surface_Ind);
+		clSetKernelArg(sph_calcNewSurface2, 2, gridSize);
+		clSetKernelArg(sph_calcNewSurface2, 3, surface_grid_rho);
+		clSetKernelArg(sph_calcNewSurface2, 4, COUNT);
+		clSetKernelArg(sph_calcNewSurface2, 5, m);
+		
 		clSetKernelArg(sph_calcNewN, 0, body_Pos);
 		clSetKernelArg(sph_calcNewN, 1, body_rho);
 		clSetKernelArg(sph_calcNewN, 2, body_n);
@@ -206,6 +330,8 @@ public class SPH {
 		clSetKernelArg(sph_calcNewPos, 1, body_V);
 		clSetKernelArg(sph_calcNewPos, 2, vis.getCurrentParams().m_timeStep);
 		clSetKernelArg(sph_calcNewPos, 3, clDataStructure);
+		
+		
 
 		clEnqueueNDRangeKernel(queue, sph_calcNewPos, 1, null, gws_BodyCnt,
 				null, null, null);
@@ -214,54 +340,50 @@ public class SPH {
 
 	public void run() {
 		init();
+		
 		int cnt = 0;
 		long time;
 		
 		while (!vis.isDone()) {
 			
 			if (!vis.isPause()) {
-			
+		
 				time = System.currentTimeMillis();
 				clEnqueueNDRangeKernel(queue, sph_calcNewRho, 1, null, gws_BodyCnt, null, null, null);
-				OpenCL.clFinish(queue);
+				System.out.println(System.currentTimeMillis() - time);
+				
+				time = System.currentTimeMillis();
+				clEnqueueNDRangeKernel(queue, sph_resetSurfaceRho, 3, null, gws_GridCnt, null, null, null);
+				clEnqueueNDRangeKernel(queue, sph_resetSurfaceInd, 1, null, gws_SurfaceCnt, null, null, null);
+				clEnqueueNDRangeKernel(queue, sph_calcNewSurface, 1, null, gws_BodyCnt, null, null, null);
+				clEnqueueNDRangeKernel(queue, sph_calcNewSurface2, 3, null, gws_CubeCnt, null, null, null);
 				System.out.println(System.currentTimeMillis() - time);
 				
 				time = System.currentTimeMillis();
 				clEnqueueNDRangeKernel(queue, sph_calcNewP, 1, null, gws_BodyCnt, null, null, null);
-				OpenCL.clFinish(queue);
 				System.out.println(System.currentTimeMillis() - time);
 				
-				clEnqueueNDRangeKernel(queue, sph_calcNewN, 1, null, gws_BodyCnt, null, null, null);
-				OpenCL.clEnqueueReadBuffer(queue, body_n, CL_FALSE, 0, float_buffer, null, null);
+				//clEnqueueNDRangeKernel(queue, sph_calcNewN, 1, null, gws_BodyCnt, null, null, null);
+				//OpenCL.clEnqueueReadBuffer(queue, body_n, CL_FALSE, 0, float_buffer, null, null);
 				//BufferHelper.printBuffer(float_buffer, 4);
-				
-				//clEnqueueNDRangeKernel(queue, sph_calcNewN, 1, null,
-				//		gws_BodyCnt, null, null, null);
+								
 				time = System.currentTimeMillis();
 				clEnqueueNDRangeKernel(queue, sph_calcNewV, 1, null, gws_BodyCnt, null, null, null);
-				OpenCL.clFinish(queue);
 				System.out.println(System.currentTimeMillis() - time);
-				
-				
-				
-				
-				
-				
+								
 				time = System.currentTimeMillis();
 				clEnqueueNDRangeKernel(queue, sph_resetData, 1, null, gws_CellCnt, null, null, null);
-				OpenCL.clFinish(queue);
 				System.out.println(System.currentTimeMillis() - time);
-				// OpenCL.clEnqueueReadBuffer(queue, clDataStructure,
-				// CL_FALSE, 0, int_buffer, null, null);
-				// BufferHelper.printBuffer(int_buffer, 8*8*8*10);
+															
 				time = System.currentTimeMillis();
 				clEnqueueNDRangeKernel(queue, sph_calcNewPos, 1, null, gws_BodyCnt, null, null, null);
-				OpenCL.clFinish(queue);
 				System.out.println(System.currentTimeMillis() - time);
-				System.out.println("-------------------------");
 
 			}
+			time = System.currentTimeMillis();
 			vis.visualize();
+			System.out.println(System.currentTimeMillis() - time);
+			System.out.println("-------------------------");
 
 		}
 		close();
