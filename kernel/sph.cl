@@ -215,7 +215,7 @@ global uint* data
 	r = fast_distance(pos, left);
 	if(r < 0.05){ a_W += (0.05 - r) * (pos - left) / (fast_length(pos - left) * pown(DELTA_T,2)); }
 	r = fast_distance(pos, right);
-	if(r < 0.05){ a_W += (0.05 - r)* (pos - right)/ (fast_length(pos - right)* pown(DELTA_T,2)); }
+	if(r < 0.05){ a_W += (0.05 - r) * (pos - right)/ (fast_length(pos - right)* pown(DELTA_T,2)); }
 
 	//---------------------------------------------------
 	//		calculate tension forces
@@ -793,7 +793,7 @@ const float m
 		
 			int l = j - confIndex_id[i];
 			
-			surface_Ind[12 * Cnt + l] = 12 * Cnt + confIndex[j];
+			surface_Ind[15 * Cnt + l] = 12 * Cnt + confIndex[j];
 		}
 	}
 }

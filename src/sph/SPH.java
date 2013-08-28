@@ -160,14 +160,13 @@ public class SPH {
 		gws_CubeCnt.put(1, gridSize);
 		gws_CubeCnt.put(2, gridSize);
 		
-		gws_SurfaceCnt.put(0, 12 * gridSize * gridSize * gridSize);
+		gws_SurfaceCnt.put(0, 15 * gridSize * gridSize * gridSize);
 		
 		gws_CellCnt.put(0, dataBufferSize[0] * dataBufferSize[1]
 				* dataBufferSize[2]);
 
 		float p[] = new float[N * 4];
 		float v[] = new float[N * 4];
-		float normals[] = new float[N * 4];
 
 		int cnt = 0;
 		for (int i = 0; i < n; i++) {
@@ -197,7 +196,8 @@ public class SPH {
 		float surface_grid[] = new float[gridSize*gridSize*gridSize*4];
 		
 		float[] vertices = new float[3 * 12 * gridSize * gridSize * gridSize];
-		int[] indices = new int[12 * gridSize * gridSize * gridSize];
+		int[] indices = new int[15 * gridSize * gridSize * gridSize];
+		float normals[] = new float[3 * 12 * gridSize * gridSize * gridSize];
 		
 		if (surface) {
 			buffers = vis.createPositions(surface_grid, normals, context, vertices, indices);
