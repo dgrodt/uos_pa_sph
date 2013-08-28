@@ -55,7 +55,7 @@ public class SPH {
 	private final float vol = 1000;
 	private final int[] dataBufferSize = { 32, 32, 32, 64 };
 	private final int N = n * n * n;
-	private float rho = 0.003f;
+	private float rho = 0.0035f;
 	private final float m = 5 / ((float) N * vol);
 	/*
 	kernel-Params:

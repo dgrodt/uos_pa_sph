@@ -8,27 +8,27 @@
 
 float W (float4* r) {
 	float x = fast_length(*r);
-	float k = 315 / (64 * 3.14159 * H*H*H*H*H*H*H*H*H); //float k = 3059924.7;
+	float k = 315 / (64 * 3.14159 * H*H*H*H*H*H*H*H*H);
 	if (x > H) return 0;
 	return k * (H*H-x*x)*(H*H-x*x)*(H*H-x*x);
 }
 
 float W2 (float4* r, float h) {
 	float x = fast_length(*r);
-	float k = 315 / (64 * 3.14159 * h*h*h*h*h*h*h*h*h); //float k = 3059924.7;
+	float k = 315 / (64 * 3.14159 * h*h*h*h*h*h*h*h*h);
 	if (x > h) return 0;
 	return k * (h*h-x*x)*(h*h-x*x)*(h*h-x*x);
 }
 float4 gradW (float4* r) {
 	float x = fast_length(*r);
-	float k = 45 / (3.14159 * H*H*H*H*H*H); //float k = 223811.6;
-	if (x > H) return 0;
+	float k = 45 / (3.14159 * H*H*H*H*H*H);
+	if (x > H || x == 0) return (float4)0;
 	return k * ((H-x)*(H-x)*(H-x)) * (*r) / x;
 }
 float4 gradWV (float4* r) {
 	float x = fast_length(*r);
-	float k = 45 / (3.14159 * H*H*H*H*H*H); //float k = 223811.6;
-	if (x > H) return 0;
+	float k = 45 / (3.14159 * H*H*H*H*H*H);
+	if (x > H || x == 0) return 0;
 	return k * (H - x);
 }
 
@@ -305,7 +305,6 @@ global uint* data
 	
 	float grid_rho = 0;
 	float h = 0.15;
-	//float h = 0.2;
 	float4 pos = body_Pos[id];
 	int offset = (int)(h * gridSize);
 	
@@ -320,13 +319,42 @@ global uint* data
 	
 		float d = dot(diff, diff);
 		
+		
 		if (d < h * h) {
-			//atomic_add(surface_grid_rho + (l + gridSize * j + gridSize * gridSize * k), (int)(W2(&diff, h) * m * 10000000000));
-			atomic_add(surface_grid_rho + (l + gridSize * j + gridSize * gridSize * k), (int)(W(&diff) * m * 10000000000));
+			atomic_add(surface_grid_rho + (l + gridSize * j + gridSize * gridSize * k), (int)(W2(&diff, h) * m * 10000000000));
 		}
+		
 	}
 	}
 	}
+}
+
+kernel void calc_NewSurfaceNormal (
+global int* surface_grid_rho,
+global float4* surface_normal,
+const int gridSize
+)
+{
+	uint id_x = get_global_id(0);
+	uint id_y = get_global_id(1);
+	uint id_z = get_global_id(2);
+	
+	float4 normal;
+	
+	if (id_x != 0 && id_y != 0 && id_z != 0 && 
+		id_x != gridSize - 1 && id_y != gridSize - 1 && id_z != gridSize - 1) {
+	
+		normal.x = (surface_grid_rho[id_x + 1 + gridSize * id_y + gridSize * gridSize * id_z] 
+				- surface_grid_rho[id_x - 1 + gridSize * id_y + gridSize * gridSize * id_z]) / (2 * gridSize);	//gridSize ?
+		  
+		normal.y = (surface_grid_rho[id_x + gridSize * (id_y + 1) + gridSize * gridSize * id_z] 
+				- surface_grid_rho[id_x + gridSize * (id_y - 1) + gridSize * gridSize * id_z]) / (2 * gridSize);	//gridSize ?
+		  			
+		normal.z = (surface_grid_rho[id_x + gridSize * id_y + gridSize * gridSize * (id_z + 1)] 
+				- surface_grid_rho[id_x + gridSize * id_y + gridSize * gridSize * (id_z - 1)]) / (2 * gridSize);	//gridSize ?
+	}
+
+	surface_normal[id_x + gridSize * id_y + gridSize * gridSize * id_z] = normal / length(normal);
 }
 
 
@@ -680,8 +708,8 @@ const float m
 )
 {
 	float4 tw = (float4)(0.0125,0,0,0);
-	//int t = (int)(W2(&tw, 0.075) * m * 10000000000);
-	int t = (int)(W(&tw) * m * 10000000000);
+	int t = (int)(W2(&tw, 0.15) * m * 10000000000);
+	//int t = (int)(W(&tw) * m * 10000000000);
 	int Cnt;
 	
 	int id_x = get_global_id(0);
