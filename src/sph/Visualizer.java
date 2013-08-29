@@ -143,8 +143,13 @@ public class Visualizer extends FrameWork
     	Texture worldTexture = Texture.create2DTexture("world",GL11.GL_RGB, GL30.GL_RGB16F, GL11.GL_FLOAT, width, height, 2, null);
     	//Particle normals
     	Texture normalTexture = Texture.create2DTexture("normal",GL11.GL_RGB, GL30.GL_RGB16F, GL11.GL_FLOAT, width, height, 3, null);
+    	//specular Informations
+    	Texture specTexture = Texture.create2DTexture("specular",GL11.GL_RGB, GL30.GL_RGB16F, GL11.GL_FLOAT, width, height, 4, null);
+    	//Diffuse Texture
+    	Texture diffTexture = Texture.create2DTexture("diffuse",GL11.GL_RGB, GL30.GL_RGB16F, GL11.GL_FLOAT, width, height, 5, null);
+    	
     	//Create Frame buffer
-        frameBuffer = FrameBuffer.createFrameBuffer("main", true, frameTexture, depthTexture, worldTexture);        
+        frameBuffer = FrameBuffer.createFrameBuffer("main", true, frameTexture, depthTexture, worldTexture, normalTexture, specTexture,diffTexture);        
 
         GLUtil.checkError();
 //        //Setup Particle Program
@@ -219,10 +224,6 @@ public class Visualizer extends FrameWork
     @Override
     public void close() 
     {
-      
-    	
-    	
-       
         if(m_oglBuffer0 != null)
         {
         	clEnqueueReleaseGLObjects(m_queue, m_oglBuffer0, null, null);
@@ -319,26 +320,36 @@ public class Visualizer extends FrameWork
         frameBuffer.renderToFramebuffer();
 
         m_surfaceProgram.use();
-   		GL11.glEnable(GL11.GL_BLEND);	
-		GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_DST_ALPHA);
-	    GL11.glDisable(GL11.GL_DEPTH_TEST);
-        
+//   		GL11.glEnable(GL11.GL_BLEND);	
+//		GL11.glBlendFunc(GL11.GL_ONE_MINUS_DST_ALPHA,GL11.GL_DST_ALPHA);
+//	    GL11.glDisable(GL11.GL_DEPTH_TEST);
+//	    GL11.glEnable(GL11.GL_POLYGON_STIPPLE); 
+	    
 	    //Draw Surface
-        setColor(0.3f, 0.3f, 1f, 0.6f);
+        setColor(0.3f, 0.3f, 1f, 0.1f);
         m_buffer[1].draw();
         
-        GL11.glEnable(GL11.GL_DEPTH_TEST);
-        GL11.glDisable(GL11.GL_BLEND);
-		GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE);
+     
+//        GL11.glDepthFunc(GL11.GL_LESS);
+//	    
+//	    //Draw Surface
+//        setColor(0.3f, 0.3f, 1f, 0.2f);
+//        m_buffer[1].draw();
         
-		//Draw Box		
+
+		//Draw Box	
+//        GL11.glEnable(GL11.GL_POLYGON_STIPPLE); 
+//        GL11.glEnable(GL11.GL_DEPTH_TEST);
+//        GL11.glDisable(GL11.GL_BLEND);
+//		GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE);
+		
+
+        //Swap back to Backbuffer and Draw Texture
+        frameBuffer.renderToBackbuffer(0);
         m_quadProgram.use();
         setColor(1f, 1f, 1f, 1f);
         m_buffer[0].draw();
         
-        //Swap back to Backbuffer and Draw Texture
-        frameBuffer.renderToBackbuffer(0);
- 
         Display.update();
         
         clEnqueueAcquireGLObjects(m_queue, m_oglBuffer1, null, null);

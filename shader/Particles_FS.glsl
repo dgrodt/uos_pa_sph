@@ -38,7 +38,7 @@ void main()
     //fs_out_color.y = clamp(fs_out_color.y, 0.3, 1);
     //fs_out_color.z = clamp(fs_out_color.z, 0.5, 1);
     //fs_out_color.w = 1;
-    fs_out_color.xyz = g_color.xyz + getLight(worldView, lightPos,  normal);
+    fs_out_color.xyz = g_color.xyz;// * getLight(worldView, lightPos,  normal).y + vec3(0.2) * getLight(worldView, lightPos,  normal).x;
     fs_out_color.w = 0.8;
     
     fs_out_three = fs_out_color;
