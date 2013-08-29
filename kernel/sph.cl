@@ -4,32 +4,26 @@
 #define BUFFER_SIZE_SIDE 32
 #define BUFFER_SIZE_DEPTH 64
 #define OFFSET 3
-#define H 0.2
 
-float W (float4* r) {
-	float x = fast_length(*r);
-	float k = 315 / (64 * 3.14159 * H*H*H*H*H*H*H*H*H);
-	if (x > H) return 0;
-	return k * (H*H-x*x)*(H*H-x*x)*(H*H-x*x);
-}
-
-float W2 (float4* r, float h) {
+float W (float4* r, float h) {
 	float x = fast_length(*r);
 	float k = 315 / (64 * 3.14159 * h*h*h*h*h*h*h*h*h);
 	if (x > h) return 0;
 	return k * (h*h-x*x)*(h*h-x*x)*(h*h-x*x);
 }
-float4 gradW (float4* r) {
+
+float4 gradW (float4* r, float h) {
 	float x = fast_length(*r);
-	float k = 45 / (3.14159 * H*H*H*H*H*H);
-	if (x > H || x == 0) return (float4)0;
-	return k * ((H-x)*(H-x)*(H-x)) * (*r) / x;
+	float k = 45 / (3.14159 * h*h*h*h*h*h);
+	if (x > h || x == 0) return (float4)0;
+	return k * ((h-x)*(h-x)*(h-x)) * (*r) / x;
 }
-float4 gradWV (float4* r) {
+
+float4 gradWV (float4* r, float h) {
 	float x = fast_length(*r);
-	float k = 45 / (3.14159 * H*H*H*H*H*H);
-	if (x > H || x == 0) return 0;
-	return k * (H - x);
+	float k = 45 / (3.14159 * h*h*h*h*h*h);
+	if (x > h || x == 0) return 0;
+	return k * (h - x);
 }
 
 
@@ -43,6 +37,7 @@ global uint* data
 	uint id = get_global_id(0);
 	uint N = get_global_size(0);
 	float rhoByM = 0;
+	float h = 0.2;
 	
 	float4 pos = body_Pos[id];
 	int4 gridPos = convert_int4((BUFFER_SIZE_SIDE - 1) * (body_Pos[id] + (float4)1) / 2);
@@ -61,7 +56,7 @@ global uint* data
 					if (i!=id)
 					{
 						float4 w = pos-body_Pos[i];
-						rhoByM += W(&w);
+						rhoByM += W(&w, h);
 					}
 				}
 			}
@@ -117,7 +112,7 @@ global uint* data
 					if (i!=id)
 					{	
 						float4 w = pos-body_Pos[i];
-						new_n += gradW(&w) / (body_rho[i] * 300000);
+						new_n += gradW(&w, h) / (body_rho[i] * 300000);
 					}
 				}
 			}
@@ -147,6 +142,7 @@ global uint* data
 	uint id = get_global_id(0);
 	uint N = get_global_size(0);
 	
+	float h = 0.2;
 
 	//float nu = 0.000001;
 	float nu = 0.0000005;
@@ -156,7 +152,6 @@ global uint* data
 	float4 a_P = (float4)0;
 	float4 a_V = (float4)0;
 	float4 a_W = (float4)0;
-	float4 a_T = (float4)0;
 	
 	//---------------------------------------------------
 	//		calculate pressure and viscosity forces
@@ -183,8 +178,8 @@ global uint* data
 					if (id!=i) 
 					{
 						float4 r = pos-body_Pos[i];	
-						a_V += -nu  * (V - body_V[i]) * gradWV(&r) / rho;
-						float4 grad = gradW(&r);	
+						a_V += -nu  * (V - body_V[i]) * gradWV(&r, h) / rho;
+						float4 grad = gradW(&r, h);	
 						float C = (body_P[i] + P)/(2 * rho);
 						a_P += C * grad;
 					}
@@ -217,25 +212,7 @@ global uint* data
 	r = fast_distance(pos, right);
 	if(r < 0.05){ a_W += (0.05 - r) * (pos - right)/ (fast_length(pos - right)* pown(DELTA_T,2)); }
 
-	//---------------------------------------------------
-	//		calculate tension forces
-	//---------------------------------------------------
-	/*
-	float nabla_n = 0;
-	for (int i = 0; i < N; i++) 
-	{
-		float4 r = body_Pos[id]-body_Pos[i];
-		if (fast_length(n[i]) > 0) 
-		{
-			if (i!=id)
-			{
-				nabla_n +=  dot(n[i]/fast_length(n[i]), gradW(r, 0.2)) / body_rho[i];
-			}
-		}
-	}	
-	a_T = tau * nabla_n * n[id];
-	*/
-	body_V[id] += (a_V + a_P + a_W + g + a_T) * DELTA_T;
+	body_V[id] += (a_V + a_P + a_W + g) * DELTA_T;
 }
 
 kernel void sph_resetData(
@@ -323,7 +300,7 @@ global uint* data
 		
 		
 		if (d < h * h) {
-			atomic_add(surface_grid_rho + (l + gridSize * j + gridSize * gridSize * k), (int)(W2(&diff, h) * m * 10000000000));
+			atomic_add(surface_grid_rho + (l + gridSize * j + gridSize * gridSize * k), (int)(W(&diff, h) * m * 10000000000));
 		}
 		
 	}
@@ -709,7 +686,7 @@ const float m
 )
 {
 	float4 tw = (float4)(0.0125,0,0,0);
-	int t = (int)(W2(&tw, 0.15) * m * 10000000000);
+	int t = (int)(W(&tw, 0.15) * m * 10000000000);
 	//int t = (int)(W(&tw) * m * 10000000000);
 	int Cnt;
 	
