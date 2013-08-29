@@ -153,9 +153,9 @@ public class SPH {
 		gws_GridCnt.put(1, gridSize);
 		gws_GridCnt.put(2, gridSize);
 		
-		gws_CubeCnt.put(0, gridSize);
-		gws_CubeCnt.put(1, gridSize);
-		gws_CubeCnt.put(2, gridSize);
+		gws_CubeCnt.put(0, gridSize-1);
+		gws_CubeCnt.put(1, gridSize-1);
+		gws_CubeCnt.put(2, gridSize-1);
 		
 		gws_SurfaceCnt.put(0, 15 * gridSize * gridSize * gridSize);
 		
