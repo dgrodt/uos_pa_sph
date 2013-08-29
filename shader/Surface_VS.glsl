@@ -18,7 +18,7 @@ void main()
 {
     fs_in_normal = vs_in_normal;
     fs_in_tc = vs_in_tc;
-    fs_in_world = (g_view * vec4(vs_in_pos, 1)).xyz;
+    fs_in_world = vs_in_pos;
     
     fs_in_ViewPos = g_view * vec4(vs_in_pos, 1);
     gl_Position =  g_projection * fs_in_ViewPos;

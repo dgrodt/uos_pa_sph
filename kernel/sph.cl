@@ -82,7 +82,7 @@ const float rho
 	body_P[id] = (( (b_roh/rho)*(b_roh/rho)*(b_roh/rho)*(b_roh/rho)*(b_roh/rho)*(b_roh/rho)*(b_roh/rho)*(b_roh/rho) ) -1) /300;
 }
 
-
+/*
 kernel void sph_CalcNewN(
 global float4* body_Pos,
 global float* body_rho,
@@ -126,7 +126,7 @@ global uint* data
 		//n[id] = (float4)0;
 	//}
 }
-
+*/
 
 kernel void sph_CalcNewV(
 global float4* body_Pos,
@@ -134,7 +134,6 @@ global float4* body_V,
 const float DELTA_T,
 global float* body_P,
 global float* body_rho,
-global float4* n,
 const float m,
 global uint* data
 )
@@ -285,15 +284,15 @@ global uint* data
 	float grid_rho = 0;
 	float h = 0.15;
 	float4 pos = body_Pos[id];
-	int offset = (int)(h * gridSize);
+	int offset = (int)(h * (gridSize - 1));
 	
 	int4 gridPos = convert_int4((gridSize - 1) * (pos + (float4)1) / 2);
 	
-	for (int l = max(gridPos.x - offset, 0); l <= min(gridPos.x + offset, gridSize - 1) ; l++) {
-	for (int j = max(gridPos.y - offset, 0); j <= min(gridPos.y + offset, gridSize - 1) ; j++) {
-	for (int k = max(gridPos.z - offset, 0); k <= min(gridPos.z + offset, gridSize - 1) ; k++) {
+	for (int l = max(gridPos.x - offset, 1); l <= min(gridPos.x + offset, gridSize - 2) ; l++) {
+	for (int j = max(gridPos.y - offset, 1); j <= min(gridPos.y + offset, gridSize - 2) ; j++) {
+	for (int k = max(gridPos.z - offset, 1); k <= min(gridPos.z + offset, gridSize - 2) ; k++) {
 
-		float4 surface_gridPos = 2 * (float4)(l, j, k, 0) / gridSize - (float4)(1,1,1,0);
+		float4 surface_gridPos = 2 * (float4)(l, j, k, 0) / (gridSize - 1) - (float4)(1,1,1,0);
 		float4 diff = pos - surface_gridPos;
 	
 		float d = dot(diff, diff);
@@ -302,7 +301,6 @@ global uint* data
 		if (d < h * h) {
 			atomic_add(surface_grid_rho + (l + gridSize * j + gridSize * gridSize * k), (int)(W(&diff, h) * m * 10000000000));
 		}
-		
 	}
 	}
 	}
@@ -318,23 +316,22 @@ const int gridSize
 	uint id_y = get_global_id(1);
 	uint id_z = get_global_id(2);
 	
-	float4 normal;
+	float3 normal;
 	
-	if (id_x != 0 && id_y != 0 && id_z != 0 && 
-		id_x != gridSize - 1 && id_y != gridSize - 1 && id_z != gridSize - 1) {
-	
-		normal.x = (surface_grid_rho[id_x + 1 + gridSize * id_y + gridSize * gridSize * id_z] 
-				- surface_grid_rho[id_x - 1 + gridSize * id_y + gridSize * gridSize * id_z]) / (2 * gridSize);	//gridSize ?
-		  
-		normal.y = (surface_grid_rho[id_x + gridSize * (id_y + 1) + gridSize * gridSize * id_z] 
-				- surface_grid_rho[id_x + gridSize * (id_y - 1) + gridSize * gridSize * id_z]) / (2 * gridSize);	//gridSize ?
-		  			
-		normal.z = (surface_grid_rho[id_x + gridSize * id_y + gridSize * gridSize * (id_z + 1)] 
-				- surface_grid_rho[id_x + gridSize * id_y + gridSize * gridSize * (id_z - 1)]) / (2 * gridSize);	//gridSize ?
-	}
+	float rho_x1 = (id_x == 0 ? 0 : surface_grid_rho[id_x - 1 + gridSize * id_y + gridSize * gridSize * id_z]);
+	float rho_x2 = (id_x == gridSize - 1 ? 0 : surface_grid_rho[id_x + 1 + gridSize * id_y + gridSize * gridSize * id_z]);
 
+	float rho_y1 = (id_y == 0 ? 0 : surface_grid_rho[id_x + gridSize * (id_y - 1) + gridSize * gridSize * id_z]);
+	float rho_y2 = (id_y == gridSize - 1 ? 0 : surface_grid_rho[id_x + gridSize * (id_y + 1) + gridSize * gridSize * id_z]);
+
+	float rho_z1 = (id_z == 0 ? 0 : surface_grid_rho[id_x + gridSize * id_y + gridSize * gridSize * (id_z - 1)]);
+	float rho_z2 = (id_z == gridSize - 1 ? 0 : surface_grid_rho[id_x + gridSize * id_y + gridSize * gridSize * (id_z + 1)]);
+			
+	normal.x = (rho_x1 - rho_x2) / gridSize;
+	normal.y = (rho_y1 - rho_y2) / gridSize;
+	normal.z = (rho_z1 - rho_z2) / gridSize;
+		
 	normal = normal / length(normal);
-	//surface_normal[id_x + gridSize * id_y + gridSize * gridSize * id_z] = normal;
 	surface_grid_normal[3 * (id_x + gridSize * id_y + gridSize * gridSize * id_z)] = normal.x;
 	surface_grid_normal[3 * (id_x + gridSize * id_y + gridSize * gridSize * id_z) + 1] = normal.y;
 	surface_grid_normal[3 * (id_x + gridSize * id_y + gridSize * gridSize * id_z) + 2] = normal.z;
@@ -701,16 +698,8 @@ const float m
 
 	int rho[8] = {};
 	for (int i = 0; i < 8; i++) {
-		
-		if (id_x + verts[i].x == 0 || id_y + verts[i].y == 0 || id_z + verts[i].z == 0
-			|| id_x + verts[i].x == gridSize || id_y + verts[i].y == gridSize || id_z + verts[i].z == gridSize) {
-			
-			// zero border density
-			rho[i] = 0;
-		}
-		else {
-			rho[i] = surface_grid_rho[id_x + verts[i].x + gridSize * (id_y + verts[i].y) + gridSize * gridSize * (id_z + verts[i].z)];
-		}
+
+		rho[i] = surface_grid_rho[id_x + verts[i].x + gridSize * (id_y + verts[i].y) + gridSize * gridSize * (id_z + verts[i].z)];
 	}
 
 	//--------------------------------------
@@ -764,7 +753,7 @@ const float m
 		int3 vert1 = verts[id1];
 		int3 vert2 = verts[id2];
 		float3 tmp = (1-s) * convert_float3(vert1) + s * convert_float3(vert2);
-		edges[i] = 2 * (tmp + pos) / gridSize - one;
+		edges[i] = 2 * (tmp + pos) / (gridSize - 1) - one;
 		
 		float3 normal1;
 		normal1.x = surface_grid_normals[3 * ((id_x + vert1.x) + gridSize * (id_y + vert1.y) + gridSize * gridSize * (id_z + vert1.z))];

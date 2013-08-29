@@ -50,7 +50,7 @@ public class SPH {
 	private final float m = 5 / ((float) N * vol);
     */
 	/*	NICE PARAMETERS */
-	private final int n = 18;
+	private final int n = 21;
 	private final int gridSize = 40;
 	private final float vol = 1000;
 	private final int[] dataBufferSize = { 32, 32, 32, 64 };
@@ -82,9 +82,6 @@ public class SPH {
 	private PointerBuffer gws_CellCnt = new PointerBuffer(1);
 	private PointerBuffer gws_SurfaceCnt = new PointerBuffer(1);
 	private FloatBuffer float_buffer = BufferUtils.createFloatBuffer(4 * N);
-	private FloatBuffer body_Pos_buffer = BufferUtils.createFloatBuffer(4 * N);
-	private FloatBuffer body_rho_buffer = BufferUtils.createFloatBuffer(N);
-	private IntBuffer data_buffer = BufferUtils.createIntBuffer(dataBufferSize[0]*dataBufferSize[1]*dataBufferSize[2]*dataBufferSize[3]);
 	
 	// private IntBuffer int_buffer =
 	// BufferUtils.createIntBuffer(dataBufferSize[0]*dataBufferSize[1]*dataBufferSize[2]*dataBufferSize[3]);
@@ -93,7 +90,6 @@ public class SPH {
 	private CLKernel sph_calcNewPos;
 	private CLKernel sph_calcNewP;
 	private CLKernel sph_calcNewRho;
-	private CLKernel sph_calcNewN;
 	private CLKernel sph_resetData;
 	private CLKernel sph_calcNewSurface;
 	private CLKernel sph_calcNewSurface2;
@@ -113,7 +109,6 @@ public class SPH {
 	private CLMem body_P;
 	private CLMem body_rho;
 	private CLMem grid_normals;
-	private CLMem surface_normals;
 	private CLMem COUNT;
 
 	private boolean initialized = false;
@@ -144,7 +139,6 @@ public class SPH {
 		sph_calcNewPos = clCreateKernel(program, "sph_CalcNewPos");
 		sph_calcNewP = clCreateKernel(program, "sph_CalcNewP");
 		sph_calcNewRho = clCreateKernel(program, "sph_CalcNewRho");
-		sph_calcNewN = clCreateKernel(program, "sph_CalcNewN");
 		sph_resetData = clCreateKernel(program, "sph_resetData");
 		sph_calcNewSurface = clCreateKernel(program, "sph_CalcNewSurface");
 		sph_calcNewSurface2 = clCreateKernel(program, "sph_CalcNewSurface2");
@@ -159,9 +153,9 @@ public class SPH {
 		gws_GridCnt.put(1, gridSize);
 		gws_GridCnt.put(2, gridSize);
 		
-		gws_CubeCnt.put(0, gridSize);
-		gws_CubeCnt.put(1, gridSize);
-		gws_CubeCnt.put(2, gridSize);
+		gws_CubeCnt.put(0, gridSize-1);
+		gws_CubeCnt.put(1, gridSize-1);
+		gws_CubeCnt.put(2, gridSize-1);
 		
 		gws_SurfaceCnt.put(0, 15 * gridSize * gridSize * gridSize);
 		
@@ -169,7 +163,6 @@ public class SPH {
 				* dataBufferSize[2]);
 
 		float p[] = new float[N * 4];
-		float v[] = new float[N * 4];
 
 		int cnt = 0;
 		for (int i = 0; i < n; i++) {
@@ -187,60 +180,31 @@ public class SPH {
 
 		IntBuffer dataStructure = BufferUtils.createIntBuffer(dataBufferSize[0]
 				* dataBufferSize[1] * dataBufferSize[2] * dataBufferSize[3]);
-
-		clDataStructure = clCreateBuffer(context, CL_MEM_READ_WRITE
-				| CL_MEM_COPY_HOST_PTR, dataStructure);
+		clDataStructure = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, dataStructure);
 		
 		IntBuffer COUNT_buffer = BufferUtils.createIntBuffer(1);
 
-		COUNT = clCreateBuffer(context, CL_MEM_READ_WRITE
-				| CL_MEM_COPY_HOST_PTR, COUNT_buffer);
+		COUNT = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, COUNT_buffer);
 
-		float surface_grid[] = new float[gridSize*gridSize*gridSize*4];
-		
+		float normals[] = new float[2 * 3 * 12 * gridSize * gridSize * gridSize];
 		float[] vertices = new float[2 * 3 * 12 * gridSize * gridSize * gridSize];
 		int[] indices = new int[15 * gridSize * gridSize * gridSize];
-		float normals[] = new float[2 * 3 * 12 * gridSize * gridSize * gridSize];
 		
-		if (surface) {
-			buffers = vis.createPositions(surface_grid, normals, context, vertices, indices);
-		}
-		else {
-			buffers = vis.createPositions(p, normals, context, vertices, indices);
-		}
+		buffers = vis.createPositions(normals, context, vertices, indices);
 
 		FloatBuffer buffer = BufferUtils.createFloatBuffer(4 * N);
-		buffer.put(v);
-		buffer.rewind();
+		body_V = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, buffer);
 
-		body_V = clCreateBuffer(context, CL_MEM_READ_WRITE
-				| CL_MEM_COPY_HOST_PTR, buffer);
+		surface_Pos = buffers[0];
+		surface_Ind = buffers[1];
 		
-		
-		if (surface) {
-			surface_Pos = buffers[1];
-			surface_Ind = buffers[2];
-			buffer = BufferUtils.createFloatBuffer(4 * N);
-			buffer.put(p);
-			buffer.rewind();
-			body_Pos = clCreateBuffer(context, CL_MEM_READ_WRITE
-					| CL_MEM_COPY_HOST_PTR, buffer);
-		
-		}
-		else {
-			body_Pos = buffers[0];
-			buffer = BufferUtils.createFloatBuffer(4 * gridSize * gridSize * gridSize);
-			buffer.put(surface_grid);
-			buffer.rewind();
-			surface_Pos = clCreateBuffer(context, CL_MEM_READ_WRITE
-					| CL_MEM_COPY_HOST_PTR, buffer);
-		}
-		
+		buffer = BufferUtils.createFloatBuffer(4 * N);
+		buffer.put(p);
+		buffer.rewind();
+		body_Pos = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, buffer);
 		
 		IntBuffer int_buffer = BufferUtils.createIntBuffer(gridSize * gridSize * gridSize);
-		surface_grid_rho = clCreateBuffer(context, CL_MEM_READ_WRITE
-				| CL_MEM_COPY_HOST_PTR, int_buffer);
-		
+		surface_grid_rho = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, int_buffer);
 	
 		float P_arr[] = new float[N];
 
@@ -267,8 +231,6 @@ public class SPH {
 		grid_normals = clCreateBuffer(context, CL_MEM_READ_WRITE
 				| CL_MEM_COPY_HOST_PTR, buffer);
  
-		surface_normals = buffers[3];
-
 		clSetKernelArg(sph_resetData, 0, clDataStructure);
 
 		clSetKernelArg(sph_calcNewRho, 0, body_Pos);
@@ -301,11 +263,6 @@ public class SPH {
 		clSetKernelArg(sph_calcNewSurface2, 5, COUNT);
 		clSetKernelArg(sph_calcNewSurface2, 6, m);
 		
-		clSetKernelArg(sph_calcNewN, 0, body_Pos);
-		clSetKernelArg(sph_calcNewN, 1, body_rho);
-		clSetKernelArg(sph_calcNewN, 2, surface_normals);
-		clSetKernelArg(sph_calcNewN, 3, clDataStructure);
-
 		clSetKernelArg(sph_calcNewP, 0, body_P);
 		clSetKernelArg(sph_calcNewP, 1, body_rho);
 		clSetKernelArg(sph_calcNewP, 2, rho);
@@ -314,9 +271,8 @@ public class SPH {
 		clSetKernelArg(sph_calcNewV, 1, body_V);
 		clSetKernelArg(sph_calcNewV, 3, body_P);
 		clSetKernelArg(sph_calcNewV, 4, body_rho);
-		clSetKernelArg(sph_calcNewV, 5, surface_normals);
-		clSetKernelArg(sph_calcNewV, 6, m);
-		clSetKernelArg(sph_calcNewV, 7, clDataStructure);
+		clSetKernelArg(sph_calcNewV, 5, m);
+		clSetKernelArg(sph_calcNewV, 6, clDataStructure);
 
 		clSetKernelArg(sph_calcNewPos, 0, body_Pos);
 		clSetKernelArg(sph_calcNewPos, 1, body_V);
@@ -363,18 +319,6 @@ public class SPH {
 					System.out.println(System.currentTimeMillis() - time);
 				}
 				
-				/*
-				clEnqueueNDRangeKernel(queue, sph_calcNewN, 1, null, gws_BodyCnt, null, null, null);
-				if(Settings.PROFILING) {
-					OpenCL.clEnqueueReadBuffer(queue, surface_normals, CL_FALSE, 0, float_buffer, null, null);
-					BufferHelper.printBuffer(float_buffer, 4);
-				
-					//clEnqueueNDRangeKernel(queue, sph_calcNewN, 1, null,
-					//		gws_BodyCnt, null, null, null);
-					time = System.currentTimeMillis();
-				}
-				*/
-				
 				clEnqueueNDRangeKernel(queue, sph_calcNewV, 1, null, gws_BodyCnt, null, null, null);
 				if(Settings.PROFILING) {
 					OpenCL.clFinish(queue);
@@ -415,9 +359,6 @@ public class SPH {
 
 		if (sph_calcNewRho != null) {
 			clReleaseKernel(sph_calcNewRho);
-		}
-		if (sph_calcNewRho != null) {
-			clReleaseKernel(sph_calcNewN); 
 		}
 		if (sph_resetData != null) {
 			clReleaseKernel(sph_resetData);
