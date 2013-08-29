@@ -50,7 +50,7 @@ public class SPH {
 	private final float m = 5 / ((float) N * vol);
     */
 	/*	NICE PARAMETERS */
-	private final int n = 21;
+	private final int n = 18;
 	private final int gridSize = 40;
 	private final float vol = 1000;
 	private final int[] dataBufferSize = { 32, 32, 32, 64 };

@@ -70,8 +70,6 @@ void main()
     sum += texture2D(color, vec2(fragCoords.x + 4.0*blurSize, fragCoords.y)) * 0.05;
     */
     fs_out_color = texture(color, fragCoords);
-
-    //fs_out_color =  sum;
     //fs_out_color = (cofs.x * vec4(0.1) + cofs.y * texture(color, fragCoords) + vec4(1) * g_ambient) ;//* sum;
 
 
