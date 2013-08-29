@@ -19,7 +19,7 @@ layout (std140) uniform Settings
 {
 	float setting_blur;
 };
-const vec3 g_lightPos = vec3( -5, 5, 0);
+const vec3 g_lightPos = vec3( 0, 5, 0);
 
 const float g_ambient = 0;
 
@@ -59,5 +59,5 @@ vec3 getLight(vec3 fragmentPos, vec3 lightPos, vec3 normal){
     vec3 r = reflect(-l, normal);
     float is = max(0, pow(dot(v, r), 32));
     
-    return  e * vec3(1) * (id + is);
+    return  e * vec3(0.5) * (id + is);
 }
