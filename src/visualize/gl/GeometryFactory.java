@@ -403,7 +403,7 @@ public static Geometry createSurface(float[] instances, float vertices[], int in
     Geometry geo = new Geometry();
    
     geo.create(vertices, GL15.GL_STATIC_DRAW, indices, GL15.GL_STATIC_DRAW, GL11.GL_TRIANGLES, 
-    		new VertexPointer(0, 3, 0));
+    		new VertexPointer(0, 3, 0), new VertexPointer(1, 3, 12));
     geo.addInstanceBuffer(instances, 3, 3, GL15.GL_DYNAMIC_DRAW);
     return geo;
 }

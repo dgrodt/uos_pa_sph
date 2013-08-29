@@ -310,7 +310,7 @@ global uint* data
 
 kernel void sph_CalcNewSurfaceNormal (
 global int* surface_grid_rho,
-global float4* surface_normal,
+global float* surface_grid_normal,
 const int gridSize
 )
 {
@@ -333,7 +333,11 @@ const int gridSize
 				- surface_grid_rho[id_x + gridSize * id_y + gridSize * gridSize * (id_z - 1)]) / (2 * gridSize);	//gridSize ?
 	}
 
-	surface_normal[id_x + gridSize * id_y + gridSize * gridSize * id_z] = normal / length(normal);
+	normal = normal / length(normal);
+	//surface_normal[id_x + gridSize * id_y + gridSize * gridSize * id_z] = normal;
+	surface_grid_normal[3 * (id_x + gridSize * id_y + gridSize * gridSize * id_z)] = normal.x;
+	surface_grid_normal[3 * (id_x + gridSize * id_y + gridSize * gridSize * id_z) + 1] = normal.y;
+	surface_grid_normal[3 * (id_x + gridSize * id_y + gridSize * gridSize * id_z) + 2] = normal.z;
 }
 
 
@@ -678,6 +682,7 @@ constant int confVertex[] = {0,3,8,							//1
 
 kernel void sph_CalcNewSurface2(
 global float* surface_Pos,
+global float* surface_grid_normals,
 global int* surface_Ind,
 const int gridSize,
 global int* surface_grid_rho,
@@ -726,7 +731,7 @@ const float m
 	}
 
 	//--------------------------------------
-	//		calculate edges
+	//		calculate edges and normals
 	//--------------------------------------
 
 	float3 edges[12] = {
@@ -743,23 +748,35 @@ const float m
 						(float3) (-1,  1, 0),
 						(float3) ( 1,  1, 0),*/
 						};
+	
+	float3 normals[12] = {};
+						
 	float3 pos = (float3)(id_x, id_y, id_z);
 	float3 one = (float3)1;
-	
 	
 	for (int i = 0; i < 12; i++) {
 	
 		int id1 = case_map[ 9 * c + edgesToVerts[2 * i]];
 		int id2 = case_map[ 9 * c + edgesToVerts[2 * i + 1]];
-			
-		float3 vert1 = convert_float3(verts[id1]);
-		float3 vert2 = convert_float3(verts[id2]);
 		
 		float s = (float)(t - rho[id1]) / (float)(rho[id2] - rho[id1]);
-		float3 tmp = (1-s) * vert1 + s * vert2;
-		
+			
+		int3 vert1 = verts[id1];
+		int3 vert2 = verts[id2];
+		float3 tmp = (1-s) * convert_float3(vert1) + s * convert_float3(vert2);
 		edges[i] = 2 * (tmp + pos) / gridSize - one;
-	 
+		
+		float3 normal1;
+		normal1.x = surface_grid_normals[3 * ((id_x + vert1.x) + gridSize * (id_y + vert1.y) + gridSize * gridSize * (id_z + vert1.z))];
+		normal1.y = surface_grid_normals[3 * ((id_x + vert1.x) + gridSize * (id_y + vert1.y) + gridSize * gridSize * (id_z + vert1.z)) + 1];
+		normal1.z = surface_grid_normals[3 * ((id_x + vert1.x) + gridSize * (id_y + vert1.y) + gridSize * gridSize * (id_z + vert1.z)) + 2];
+		
+		float3 normal2;
+		normal2.x = surface_grid_normals[3 * ((id_x + vert2.x) + gridSize * (id_y + vert2.y) + gridSize * gridSize * (id_z + vert2.z))];
+		normal2.y = surface_grid_normals[3 * ((id_x + vert2.x) + gridSize * (id_y + vert2.y) + gridSize * gridSize * (id_z + vert2.z)) + 1];
+		normal2.z = surface_grid_normals[3 * ((id_x + vert2.x) + gridSize * (id_y + vert2.y) + gridSize * gridSize * (id_z + vert2.z)) + 2];
+		
+		normals[i] = (1-s) * normal1 + s * normal2;
 	}
 	
 	//--------------------------------------
@@ -777,9 +794,13 @@ const float m
 			
 			int l = j - confVertex_id[i];
 			
-			surface_Pos[3 * (12 * Cnt + l)] = edges[confVertex[j]].x; 
-			surface_Pos[3 * (12 * Cnt + l) + 1] = edges[confVertex[j]].y;
-			surface_Pos[3 * (12 * Cnt + l) + 2] = edges[confVertex[j]].z;
+			surface_Pos[6 * (12 * Cnt + l)] = edges[confVertex[j]].x; 
+			surface_Pos[6 * (12 * Cnt + l) + 1] = edges[confVertex[j]].y;
+			surface_Pos[6 * (12 * Cnt + l) + 2] = edges[confVertex[j]].z;
+			
+			surface_Pos[6 * (12 * Cnt + l) + 3] = normals[confVertex[j]].x; 
+			surface_Pos[6 * (12 * Cnt + l) + 4] = normals[confVertex[j]].y;
+			surface_Pos[6 * (12 * Cnt + l) + 5] = normals[confVertex[j]].z;
 		}
 
 		if(cnt <= 4 || i > 14)
