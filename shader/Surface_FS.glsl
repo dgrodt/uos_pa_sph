@@ -28,7 +28,7 @@ void main()
     fs_out_color = g_color;
     fs_out_depth = 1-normalize(fs_in_ViewPos).z;
     fs_out_world = fs_in_world;
-    fs_out_normal = fs_in_normal;
+    fs_out_normal = normalize(fs_in_normal);
     vec2 diff_spec = getLight(worldView, g_lightPos,  normal);
     fs_out_specular = vec3(1,0,0) * diff_spec.y;
     fs_out_diffuse  = vec3(1,1,1) * diff_spec.x;
