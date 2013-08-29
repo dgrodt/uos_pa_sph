@@ -273,48 +273,32 @@ public class Visualizer extends FrameWork
         clSetKernelArg(m_kernel, 2, m_currentParams.m_timeStep);
     }
     
-    public CLMem[] createPositions(float[] pos, float[] normal, CLContext context, float[] vertices, int[] indices) {
+    public CLMem[] createPositions(float[] normal, CLContext context, float[] vertices, int[] indices) {
 
-//		if (m_buffer[0] != null) {
-//			m_buffer[0].delete();
-//		}
-//
-//		m_buffer[0] = GeometryFactory.createParticles(pos, normal,
-//				m_currentParams.m_pointSize * 0.9f, 4);
+		if (m_buffer[0] != null) {
+			m_buffer[0].delete();
+		}
 
+		m_buffer[0] = GeometryFactory.createCube(new float[] { 0, 0, 0 }, 1);
+		
 		if (m_buffer[1] != null) {
 			m_buffer[1].delete();
 		}
-
-		m_buffer[1] = GeometryFactory.createCube(new float[] { 0, 0, 0 }, 1);
 		
-		if (m_buffer[2] != null) {
-			m_buffer[2].delete();
-		}
+		m_buffer[1] = GeometryFactory.createSurface(new float[] { 0, 0, 0 }, vertices, indices);
 		
-		m_buffer[2] = GeometryFactory.createSurface(new float[] { 0, 0, 0 }, vertices, indices);
-		
-//		m_oglBuffer0 = clCreateFromGLBuffer(context, CL_MEM_READ_WRITE,
-//				m_buffer[0].getInstanceBuffer(0).getId());
 		m_oglBuffer1 = clCreateFromGLBuffer(context, CL_MEM_READ_WRITE,
-				m_buffer[2].getVertexBuffer().getId());
+				m_buffer[1].getVertexBuffer().getId());
 		m_oglBuffer2 = clCreateFromGLBuffer(context, CL_MEM_READ_WRITE,
-				m_buffer[2].getIndexBuffer().getId());
+				m_buffer[1].getIndexBuffer().getId());
 
-
-		m_oglBuffer3 = clCreateFromGLBuffer(context, CL_MEM_READ_WRITE,
-				m_buffer[2].getIndexBuffer().getId());
 		
-		CLMem pair[] = new CLMem[4];
-		//pair[0] = m_oglBuffer0;
-		pair[1] = m_oglBuffer1;
-		pair[2] = m_oglBuffer2;
-		pair[3] = m_oglBuffer3;
+		CLMem pair[] = new CLMem[2];
+		pair[0] = m_oglBuffer1;
+		pair[1] = m_oglBuffer2;
 
-//		clEnqueueAcquireGLObjects(m_queue, m_oglBuffer0, null, null);
 		clEnqueueAcquireGLObjects(m_queue, m_oglBuffer1, null, null);
 		clEnqueueAcquireGLObjects(m_queue, m_oglBuffer2, null, null);
-		clEnqueueAcquireGLObjects(m_queue, m_oglBuffer3, null, null);
 
 		return pair;
 	}
@@ -327,27 +311,13 @@ public class Visualizer extends FrameWork
     public void render() 
     {
 
-    	
-
-    	//clEnqueueReleaseGLObjects(m_queue, m_oglBuffer0, null, null);
        	clEnqueueReleaseGLObjects(m_queue, m_oglBuffer1, null, null);
        	clEnqueueReleaseGLObjects(m_queue, m_oglBuffer2, null, null);
-       	clEnqueueReleaseGLObjects(m_queue, m_oglBuffer3, null, null);
     	   	
         updateInput();
         //Bind and Clear Framebuffer
         frameBuffer.renderToFramebuffer();
-        
-        //Draw Box
-        
 
-        /*
-        //Draw Particles
-        m_program.use();
-        setColor(0.5f, 0.5f, 1f, 1f);
-
-        m_buffer[0].draw();
-        */
         m_surfaceProgram.use();
    		GL11.glEnable(GL11.GL_BLEND);	
 		GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_DST_ALPHA);
@@ -355,29 +325,24 @@ public class Visualizer extends FrameWork
         
 	    //Draw Surface
         setColor(0.3f, 0.3f, 1f, 0.6f);
-        m_buffer[2].draw();
+        m_buffer[1].draw();
         
         GL11.glEnable(GL11.GL_DEPTH_TEST);
         GL11.glDisable(GL11.GL_BLEND);
 		GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE);
-		
+        
+		//Draw Box		
         m_quadProgram.use();
         setColor(1f, 1f, 1f, 1f);
-        m_buffer[1].draw();
-        
-	    
-        
+        m_buffer[0].draw();
         
         //Swap back to Backbuffer and Draw Texture
         frameBuffer.renderToBackbuffer(0);
  
         Display.update();
         
-        
-        //clEnqueueAcquireGLObjects(m_queue, m_oglBuffer0, null, null);
         clEnqueueAcquireGLObjects(m_queue, m_oglBuffer1, null, null);
        	clEnqueueAcquireGLObjects(m_queue, m_oglBuffer2, null, null);
-       	clEnqueueAcquireGLObjects(m_queue, m_oglBuffer3, null, null);
 
         m_timer.tick();
         Display.setTitle("SPH Simulation (FPS: "+m_timer.getFps()+")");

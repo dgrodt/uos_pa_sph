@@ -82,7 +82,7 @@ const float rho
 	body_P[id] = (( (b_roh/rho)*(b_roh/rho)*(b_roh/rho)*(b_roh/rho)*(b_roh/rho)*(b_roh/rho)*(b_roh/rho)*(b_roh/rho) ) -1) /300;
 }
 
-
+/*
 kernel void sph_CalcNewN(
 global float4* body_Pos,
 global float* body_rho,
@@ -126,7 +126,7 @@ global uint* data
 		//n[id] = (float4)0;
 	//}
 }
-
+*/
 
 kernel void sph_CalcNewV(
 global float4* body_Pos,
@@ -134,7 +134,6 @@ global float4* body_V,
 const float DELTA_T,
 global float* body_P,
 global float* body_rho,
-global float4* n,
 const float m,
 global uint* data
 )
