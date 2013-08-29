@@ -318,22 +318,19 @@ const int gridSize
 	
 	float3 normal;
 	
-	if (id_x != 0 && id_y != 0 && id_z != 0 && 
-		id_x != gridSize - 1 && id_y != gridSize - 1 && id_z != gridSize - 1) {
-	
-		normal.x = (surface_grid_rho[id_x + 1 + gridSize * id_y + gridSize * gridSize * id_z] 
-				- surface_grid_rho[id_x - 1 + gridSize * id_y + gridSize * gridSize * id_z]) / (2 * gridSize);	//gridSize ?
-		  
-		normal.y = (surface_grid_rho[id_x + gridSize * (id_y + 1) + gridSize * gridSize * id_z] 
-				- surface_grid_rho[id_x + gridSize * (id_y - 1) + gridSize * gridSize * id_z]) / (2 * gridSize);	//gridSize ?
-		  			
-		normal.z = (surface_grid_rho[id_x + gridSize * id_y + gridSize * gridSize * (id_z + 1)] 
-				- surface_grid_rho[id_x + gridSize * id_y + gridSize * gridSize * (id_z - 1)]) / (2 * gridSize);	//gridSize ?
-	}
-	else {
-		normal = (float3)0;
-	}
+	float rho_x1 = (id_x == 0 ? 0 : surface_grid_rho[id_x - 1 + gridSize * id_y + gridSize * gridSize * id_z]);
+	float rho_x2 = (id_x == gridSize - 1 ? 0 : surface_grid_rho[id_x + 1 + gridSize * id_y + gridSize * gridSize * id_z]);
 
+	float rho_y1 = (id_y == 0 ? 0 : surface_grid_rho[id_x + gridSize * (id_y - 1) + gridSize * gridSize * id_z]);
+	float rho_y2 = (id_y == gridSize - 1 ? 0 : surface_grid_rho[id_x + gridSize * (id_y + 1) + gridSize * gridSize * id_z]);
+
+	float rho_z1 = (id_z == 0 ? 0 : surface_grid_rho[id_x + gridSize * id_y + gridSize * gridSize * (id_z - 1)]);
+	float rho_z2 = (id_z == gridSize - 1 ? 0 : surface_grid_rho[id_x + gridSize * id_y + gridSize * gridSize * (id_z + 1)]);
+			
+	normal.x = (rho_x1 - rho_x2) / gridSize;
+	normal.y = (rho_y1 - rho_y2) / gridSize;
+	normal.z = (rho_z1 - rho_z2) / gridSize;
+		
 	normal = normal / length(normal);
 	surface_grid_normal[3 * (id_x + gridSize * id_y + gridSize * gridSize * id_z)] = normal.x;
 	surface_grid_normal[3 * (id_x + gridSize * id_y + gridSize * gridSize * id_z) + 1] = normal.y;
