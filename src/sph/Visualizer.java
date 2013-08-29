@@ -29,6 +29,8 @@ import org.lwjgl.opengl.GL30;
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector3f;
 
+import pa.cl.OpenCL;
+
 import visualize.FrameWork;
 import visualize.gl.FrameBuffer;
 import visualize.gl.GLUtil;
@@ -307,8 +309,10 @@ public class Visualizer extends FrameWork
 		m_oglBuffer2 = clCreateFromGLBuffer(context, CL_MEM_READ_WRITE,
 				m_buffer[2].getIndexBuffer().getId());
 
-		m_oglBuffer3 = clCreateFromGLBuffer(context, CL_MEM_READ_WRITE, m_buffer[2].getIndexBuffer().getId());
 
+		m_oglBuffer3 = clCreateFromGLBuffer(context, CL_MEM_READ_WRITE,
+				m_buffer[2].getIndexBuffer().getId());
+		
 		CLMem pair[] = new CLMem[4];
 		//pair[0] = m_oglBuffer0;
 		pair[1] = m_oglBuffer1;
