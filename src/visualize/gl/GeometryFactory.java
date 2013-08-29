@@ -12,6 +12,7 @@ import org.lwjgl.opengl.GL20;
 import org.lwjgl.opengl.GL30;
 import org.lwjgl.opengl.GL31;
 import org.lwjgl.opengl.GL33;
+import org.lwjgl.util.vector.Vector3f;
 
 import pa.util.SizeOf;
 import visualize.gl.Buffer.IndexBuffer;
@@ -331,68 +332,80 @@ public class GeometryFactory
         return geo; 
     }
     
-    public static Geometry createCube(float[] instances, int instanceElementSize)
+    public static Geometry createCube(Vector3f pos, float[] instances, int instanceElementSize, int size, boolean lines)
     {
         Geometry geo = new Geometry();
 
         float vertices[] = 
         {
             //vorne
-            -1, -1, -1, /**/0, 1, -1, /**/ 0, 1,
-            -1, +1, -1, /**/0, 1, -1, /**/ 0, 0,
-            +1, +1, -1, /**/0, 1, -1, /**/ 1, 0,
-            +1, -1, -1, /**/0, 1, -1, /**/ 1, 1,
+            -size + pos.x, -size + pos.y, -size + pos.z, /**/0, 1, -1, /**/ 0, 1, //0
+            -size + pos.x, +size + pos.y, -size + pos.z, /**/0, 1, -1, /**/ 0, 0, //1
+            +size + pos.x, +size + pos.y, -size + pos.z, /**/0, 1, -1, /**/ 1, 0, //2
+            +size + pos.x, -size + pos.y, -size + pos.z, /**/0, 1, -1, /**/ 1, 1, //3
 
             //hinten
-            -1, -1, +1, /**/0, 0, +1, /**/ 1, 0,
-            -1, +1, +1, /**/0, 0, +1, /**/ 1, 1,
-            +1, +1, +1, /**/0, 0, +1, /**/ 0, 1,
-            +1, -1, +1, /**/0, 0, +1, /**/ 0, 0,
+            -size + pos.x, -size + pos.y, +size + pos.z, /**/0, 0, +1, /**/ 0, 1, //4
+            -size + pos.x, +size + pos.y, +size + pos.z, /**/0, 0, +1, /**/ 0, 0, //5
+            +size + pos.x, +size + pos.y, +size + pos.z, /**/0, 0, +1, /**/ 1, 0, //6
+            +size + pos.x, -size + pos.y, +size + pos.z, /**/0, 0, +1, /**/ 1, 1, //7
 
             //links
-            -1, -1, -1, /**/-1, 0, 0, /**/ 1, 0, //8
-            -1, -1, +1, /**/-1, 0, 0, /**/ 0, 0, //9
-            -1, +1, -1, /**/-1, 0, 0, /**/ 1, 1, //10
-            -1, +1, +1, /**/-1, 0, 0, /**/ 0, 1, //11
+            -size + pos.x, -size + pos.y, -size + pos.z, /**/-1, 0, 0, /**/ 0, 1, //8
+            -size + pos.x, -size + pos.y, +size + pos.z, /**/-1, 0, 0, /**/ 1, 1, //9
+            -size + pos.x, +size + pos.y, -size + pos.z, /**/-1, 0, 0, /**/ 0, 0, //10
+            -size + pos.x, +size + pos.y, +size + pos.z, /**/-1, 0, 0, /**/ 1, 0, //11
 
             //rechts
-            +1, -1, -1, /**/+1, 0, 0, /**/ 0, 0, //12
-            +1, -1, +1, /**/+1, 0, 0, /**/ 1, 0, //13
-            +1, +1, -1, /**/+1, 0, 0, /**/ 0, 1, //14
-            +1, +1, +1, /**/+1, 0, 0, /**/ 1, 1, //15
+            +size + pos.x, -size + pos.y, -size + pos.z, /**/+1, 0, 0, /**/ 1, 1, //12
+            +size + pos.x, -size + pos.y, +size + pos.z, /**/+1, 0, 0, /**/ 0, 1, //13
+            +size + pos.x, +size + pos.y, -size + pos.z, /**/+1, 0, 0, /**/ 1, 0, //14
+            +size + pos.x, +size + pos.y, +size + pos.z, /**/+1, 0, 0, /**/ 0, 0, //15
 
             //oben
-            +1, +1, +1, /**/0, +1, 0, /**/ 1, 1, //16
-            +1, +1, -1, /**/0, +1, 0, /**/ 1, 0, //17
-            -1, +1, +1, /**/0, +1, 0, /**/ 0, 1, //18
-            -1, +1, -1, /**/0, +1, 0, /**/ 0, 0, //19
+            +size + pos.x, +size + pos.y, +size + pos.z, /**/0, +1, 0, /**/ 1, 1, //16
+            +size + pos.x, +size + pos.y, -size + pos.z, /**/0, +1, 0, /**/ 1, 0, //17
+            -size + pos.x, +size + pos.y, +size + pos.z, /**/0, +1, 0, /**/ 0, 1, //18
+            -size + pos.x, +size + pos.y, -size + pos.z, /**/0, +1, 0, /**/ 0, 0, //19
 
             //unten
-            +1, -1, +1, /**/0, -1, 0, /**/ 0, 1, //20
-            +1, -1, -1, /**/0, -1, 0, /**/ 0, 0, //21
-            -1, -1, +1, /**/0, -1, 0, /**/ 1, 1, //22
-            -1, -1, -1, /**/0, -1, 0, /**/ 1, 0, //23
+            +size + pos.x, -size + pos.y, +size + pos.z, /**/0, -1, 0, /**/ 0, size, //20
+            +size + pos.x, -size + pos.y, -size + pos.z, /**/0, -1, 0, /**/ 0, 0, //21
+            -size + pos.x, -size + pos.y, +size + pos.z, /**/0, -1, 0, /**/ size, size, //22
+            -size + pos.x, -size + pos.y, -size + pos.z, /**/0, -1, 0, /**/ size, 0, //23
         };
 
-        int indices[] = 
-        {
-                   		
-        	0,1,2,3,0,-1,
-            4,5,6,7,4,-1,
-            0,4,-1,
-            1,5,-1,
-            2,6,-1,
-            3,7,-1,
-            
-            /*5,6,4,7,-1,
-            8,10,9,11,-1,
-            13,15,12,14,-1,
-            17,16,19,18,-1,
-            20,21,22,23,-1*/
-        };
+        int[] indices;
+        if(lines) {
+	        int[] tmp = {          		
+			    	0,1,2,3,0,-1,
+			        4,5,6,7,4,-1,
+			        0,4,-1,
+			        1,5,-1,
+			        2,6,-1,
+			        3,7,-1,
+		        };
+	        indices = tmp;
+        } else {
+        	int tmp[] = 
+                {
+                    3,2,0,1,-1,
+                    5,6,4,7,-1,
+                    8,10,9,11,-1,
+                    13,15,12,14,-1,
+                    17,16,19,18,-1,
+                    20,21,22,23,-1
+                };
+        	indices = tmp;
+        }
         
-        geo.create(vertices, GL15.GL_STATIC_DRAW, indices, GL15.GL_STATIC_DRAW, GL11.GL_LINE_STRIP, 
+        if(lines) {
+        	geo.create(vertices, GL15.GL_STATIC_DRAW, indices, GL15.GL_STATIC_DRAW, GL11.GL_LINE_STRIP, 
         		new VertexPointer(0, 3, 0), new VertexPointer(1, 3, 12), new VertexPointer(2, 2, 24));
+        } else {
+        	geo.create(vertices, GL15.GL_STATIC_DRAW, indices, GL15.GL_STATIC_DRAW, GL11.GL_TRIANGLE_STRIP, 
+                    new VertexPointer(0, 3, 0), new VertexPointer(1, 3, 12), new VertexPointer(2, 2, 24));
+        }
         geo.addInstanceBuffer(instances, 3, 3, GL15.GL_DYNAMIC_DRAW);
         return geo;
     }
