@@ -316,7 +316,7 @@ const int gridSize
 	uint id_y = get_global_id(1);
 	uint id_z = get_global_id(2);
 	
-	float4 normal;
+	float3 normal;
 	
 	if (id_x != 0 && id_y != 0 && id_z != 0 && 
 		id_x != gridSize - 1 && id_y != gridSize - 1 && id_z != gridSize - 1) {
@@ -329,6 +329,9 @@ const int gridSize
 		  			
 		normal.z = (surface_grid_rho[id_x + gridSize * id_y + gridSize * gridSize * (id_z + 1)] 
 				- surface_grid_rho[id_x + gridSize * id_y + gridSize * gridSize * (id_z - 1)]) / (2 * gridSize);	//gridSize ?
+	}
+	else {
+		normal = (float3)0;
 	}
 
 	normal = normal / length(normal);
