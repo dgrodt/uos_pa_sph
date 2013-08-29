@@ -308,26 +308,24 @@ public class GeometryFactory
         return geo;
     }
     
-    public static Geometry createParticles(float[] instances, float[] normals, float size, int stride)
+    public static Geometry createParticles(float[] instances,float size, int stride)
     {
         Geometry geo = new Geometry();
         size /= 2.0f;
         
         float vertices[] = 
             {
-                -size, -size, 0, 0, 1, 0, 0, 1,
-                +size, -size, 0, 0, 1, 0, 1, 1,
-                -size, +size, 0, 0, 1, 0, 0, 0,
-                +size, +size, 0, 0, 1, 0, 1, 0,
+                -size, -size, 0,0, 0, 1, 0, 0, 1,
+                +size, -size, 0,0, 0, 1, 0, 1, 1,
+                -size, +size, 0,0, 0, 1, 0, 0, 0,
+                +size, +size, 0,0, 0, 1, 0, 1, 0,
             };
         
         int indices[] = {0,1,2,3};
 
         geo.create(vertices, GL15.GL_STATIC_DRAW, indices, GL15.GL_STATIC_DRAW, GL11.GL_TRIANGLE_STRIP, 
-                new VertexPointer(0, 3, 0), new VertexPointer(1, 3, 12), new VertexPointer(2, 2, 24));
-        
+                new VertexPointer(0, 4, 0), new VertexPointer(1, 3, 12), new VertexPointer(2, 2, 24));
         geo.addInstanceBuffer(instances, stride, 3, GL15.GL_DYNAMIC_DRAW);
-        geo.addInstanceBuffer(normals, stride, 4, GL15.GL_DYNAMIC_DRAW);
         return geo; 
     }
     

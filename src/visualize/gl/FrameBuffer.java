@@ -41,7 +41,7 @@ public class FrameBuffer {
             }
         }
         FrameBuffer buffer = new FrameBuffer(name, depthStencil, copiedTextures);
-     
+       
         if(!buffer.init()) {
             buffer.delete();
             System.out.printf("Initialization of FrameBuffer %s failed!\n", name);
@@ -81,20 +81,20 @@ public class FrameBuffer {
 		frameBufferProgram.bindAttributeLocation("vs_in_position", 0);
 		frameBufferProgram.bindAttributeLocation("vs_in_tc", 1);
 		frameBufferProgram.linkAndValidate();
-        //m_sLocation = frameBufferProgram.getUniformLocation("g_quadTexture");
 		frameBufferProgram.bindUniformBlock("Camera", FrameWork.UniformBufferSlots.CAMERA_BUFFER_SLOT);
 		frameBufferProgram.bindUniformBlock("Color", FrameWork.UniformBufferSlots.COLOR_BUFFER_SLOT);
 		frameBufferProgram.bindUniformBlock("Settings", FrameWork.UniformBufferSlots.SETTINGS_BUFFER_SLOT);
 		
         dynamicScreenSquad = GeometryFactory.createDynamicScreenQuad();
 //        transformScreenQuad(0, 0, this.textures[0].getDest().width, this.textures[0].getDest().height);
-        
+        GLUtil.checkError();
 		
 		this.ID = GL30.glGenFramebuffers();
 		GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, this.ID);
         if(this.ID== 0) {
             return false;
         }
+        GLUtil.checkError();
         this.bind();
 		if(this.deptStencil)
 		{
@@ -103,6 +103,7 @@ public class FrameBuffer {
 	    	GL30.glRenderbufferStorage(GL30.GL_RENDERBUFFER, GL30.GL_DEPTH24_STENCIL8, FrameWork.instance().getWidth(), FrameWork.instance().getHeight());
 	    	GL30.glFramebufferRenderbuffer(GL30.GL_FRAMEBUFFER, GL30.GL_DEPTH_STENCIL_ATTACHMENT, GL30.GL_RENDERBUFFER, this.deptStencilID);
 		}
+		 GLUtil.checkError();
         IntBuffer drawBuffers = BufferUtils.createIntBuffer(this.textures.length+1);
         for(int i=0; i < this.textures.length; ++i) {
             this.textures[i].bind();
@@ -113,6 +114,7 @@ public class FrameBuffer {
                 System.out.printf("Framebuffer %s texture %d failed.\n", this.name, i);
             }                
         }
+        GLUtil.checkError();
         GL20.glDrawBuffers(drawBuffers);
 
         

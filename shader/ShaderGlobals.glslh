@@ -39,11 +39,12 @@ layout (std140) uniform Color
 {
     vec4 g_color;
 };
+
 layout (std140) uniform Settings
 {
 	float setting_blur;
 };
-const vec3 g_lightPos = vec3( 0, 5, 0);
+const vec3 g_lightPos = vec3( -5, 5, 0);
 
 const float g_ambient = 0;
 
@@ -76,12 +77,12 @@ vec2 getLight(vec4 fragmentPos, vec3 lightPos, vec3 normal){
     float distSq = dot(l, l);
     float e = 16.0 / (1.0 + distSq);
     l = normalize(l);
-    float id = max(0, dot(-normal, l));
+    float id = max(0, dot(normal, l));
     
     // --- begin phong
     vec3 v = normalize((g_view*g_eye).xyz - fragmentPos.xyz / fragmentPos.w);
-    vec3 r = reflect(-l, -normal);
-    float is = max(0, pow(dot(v, r), 8));
+    vec3 r = reflect(-l, normal);
+    float is = max(0, pow(dot(v, r), 16));
     
     return vec2(id,is);
 }
