@@ -184,15 +184,11 @@ public class Visualizer extends FrameWork
     	m_quadProgram.bindUniformBlock("Settings", FrameWork.UniformBufferSlots.SETTINGS_BUFFER_SLOT);
 
     	m_quadProgram.use();
-
-    	//GL11.glEnable(GL11.GL_BLEND);
-    	//GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-        //GL11.glDisable(GL11.GL_CULL_FACE);
         
     	
     	//Setup Surface Program
     	m_surfaceProgram = new Program();
-    	m_surfaceProgram.create("shader/Quad_VS.glsl", "shader/Quad_FS.glsl");
+    	m_surfaceProgram.create("shader/Surface_VS.glsl", "shader/Surface_FS.glsl");
     	m_surfaceProgram.bindAttributeLocation("vs_in_pos", 0);
     	m_surfaceProgram.bindAttributeLocation("vs_in_normal", 1);
     	m_surfaceProgram.bindAttributeLocation("vs_in_tc", 2);
@@ -203,10 +199,6 @@ public class Visualizer extends FrameWork
     	m_surfaceProgram.bindUniformBlock("Settings", FrameWork.UniformBufferSlots.SETTINGS_BUFFER_SLOT);
 
     	m_surfaceProgram.use();
-       
-    	//GL11.glEnable(GL11.GL_BLEND);
-    	//GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_DST_ALPHA);
-    	//GL11.glDisable(GL11.GL_CULL_FACE);
     	
         FloatBuffer data = BufferUtils.createFloatBuffer(4);
         data.put(0.5f); data.put(1); data.put(0); data.put(1);
@@ -344,10 +336,7 @@ public class Visualizer extends FrameWork
         
         //Draw Box
         
-        m_quadProgram.use();
-        setColor(1f, 1f, 1f, 1f);
-        m_buffer[1].draw();
-        
+
         /*
         //Draw Particles
         m_program.use();
@@ -355,12 +344,24 @@ public class Visualizer extends FrameWork
 
         m_buffer[0].draw();
         */
-        
-        //Draw Surface
         m_surfaceProgram.use();
-        setColor(0.5f, 0.5f, 1f, 0.8f);
+   		GL11.glEnable(GL11.GL_BLEND);	
+		GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_DST_ALPHA);
+	    GL11.glDisable(GL11.GL_DEPTH_TEST);
+        
+	    //Draw Surface
+        setColor(0.3f, 0.3f, 1f, 0.6f);
         m_buffer[2].draw();
         
+        GL11.glEnable(GL11.GL_DEPTH_TEST);
+        GL11.glDisable(GL11.GL_BLEND);
+		GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE);
+		
+        m_quadProgram.use();
+        setColor(1f, 1f, 1f, 1f);
+        m_buffer[1].draw();
+        
+	    
         
         
         //Swap back to Backbuffer and Draw Texture
