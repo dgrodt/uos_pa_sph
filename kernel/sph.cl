@@ -262,10 +262,12 @@ global uint* data
     int3 gridPos = convert_int3((BUFFER_SIZE_SIDE - 1) * (pos.xyz + (float3)1) / 2);
     int cnt_ind = BUFFER_SIZE_DEPTH * (gridPos.x + BUFFER_SIZE_SIDE * gridPos.y + BUFFER_SIZE_SIDE * BUFFER_SIZE_SIDE * gridPos.z);
 
-    int cnt = atomic_inc(&data[cnt_ind]) + 1;
-    if(cnt > BUFFER_SIZE_DEPTH -2)
-    	return;
-    data[cnt_ind + cnt] = id;
+	if (0 <= cnt_ind && cnt_ind < BUFFER_SIZE_DEPTH * BUFFER_SIZE_SIDE * BUFFER_SIZE_SIDE * BUFFER_SIZE_SIDE) {
+	    int cnt = atomic_inc(data + cnt_ind) + 1;
+	    if(cnt < BUFFER_SIZE_DEPTH - 1) {
+	    	data[cnt_ind + cnt] = id;
+	    }
+	}
 }
 
 
