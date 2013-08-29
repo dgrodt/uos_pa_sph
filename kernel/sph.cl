@@ -215,7 +215,7 @@ global uint* data
 	r = fast_distance(pos, left);
 	if(r < 0.05){ a_W += (0.05 - r) * (pos - left) / (fast_length(pos - left) * pown(DELTA_T,2)); }
 	r = fast_distance(pos, right);
-	if(r < 0.05){ a_W += (0.05 - r)* (pos - right)/ (fast_length(pos - right)* pown(DELTA_T,2)); }
+	if(r < 0.05){ a_W += (0.05 - r) * (pos - right)/ (fast_length(pos - right)* pown(DELTA_T,2)); }
 
 	//---------------------------------------------------
 	//		calculate tension forces
@@ -262,10 +262,12 @@ global uint* data
     int3 gridPos = convert_int3((BUFFER_SIZE_SIDE - 1) * (pos.xyz + (float3)1) / 2);
     int cnt_ind = BUFFER_SIZE_DEPTH * (gridPos.x + BUFFER_SIZE_SIDE * gridPos.y + BUFFER_SIZE_SIDE * BUFFER_SIZE_SIDE * gridPos.z);
 
-    int cnt = atomic_inc(&data[cnt_ind]) + 1;
-    if(cnt > BUFFER_SIZE_DEPTH -2)
-    	return;
-    data[cnt_ind + cnt] = id;
+	if (0 <= cnt_ind && cnt_ind < BUFFER_SIZE_DEPTH * BUFFER_SIZE_SIDE * BUFFER_SIZE_SIDE * BUFFER_SIZE_SIDE) {
+	    int cnt = atomic_inc(data + cnt_ind) + 1;
+	    if(cnt < BUFFER_SIZE_DEPTH - 1) {
+	    	data[cnt_ind + cnt] = id;
+	    }
+	}
 }
 
 
@@ -329,7 +331,7 @@ global uint* data
 	}
 }
 
-kernel void calc_NewSurfaceNormal (
+kernel void sph_CalcNewSurfaceNormal (
 global int* surface_grid_rho,
 global float4* surface_normal,
 const int gridSize
@@ -802,6 +804,7 @@ const float m
 			surface_Pos[3 * (12 * Cnt + l) + 1] = edges[confVertex[j]].y;
 			surface_Pos[3 * (12 * Cnt + l) + 2] = edges[confVertex[j]].z;
 		}
+
 		if(cnt <= 4 || i > 14)
 		{
 			for (int j = confIndex_id[i]; j < confIndex_id[i + 1]; j++) {

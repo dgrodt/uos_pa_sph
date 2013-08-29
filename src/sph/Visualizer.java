@@ -307,18 +307,18 @@ public class Visualizer extends FrameWork
 		m_oglBuffer2 = clCreateFromGLBuffer(context, CL_MEM_READ_WRITE,
 				m_buffer[2].getIndexBuffer().getId());
 
-		//m_oglBuffer3 = clCreateFromGLBuffer(context, CL_MEM_READ_WRITE, m_buffer[0].getInstanceBuffer(1).getId());
+		m_oglBuffer3 = clCreateFromGLBuffer(context, CL_MEM_READ_WRITE, m_buffer[2].getIndexBuffer().getId());
 
 		CLMem pair[] = new CLMem[4];
 		//pair[0] = m_oglBuffer0;
 		pair[1] = m_oglBuffer1;
 		pair[2] = m_oglBuffer2;
-		//pair[3] = m_oglBuffer3;
+		pair[3] = m_oglBuffer3;
 
 //		clEnqueueAcquireGLObjects(m_queue, m_oglBuffer0, null, null);
 		clEnqueueAcquireGLObjects(m_queue, m_oglBuffer1, null, null);
 		clEnqueueAcquireGLObjects(m_queue, m_oglBuffer2, null, null);
-		//clEnqueueAcquireGLObjects(m_queue, m_oglBuffer3, null, null);
+		clEnqueueAcquireGLObjects(m_queue, m_oglBuffer3, null, null);
 
 		return pair;
 	}
@@ -336,7 +336,7 @@ public class Visualizer extends FrameWork
     	//clEnqueueReleaseGLObjects(m_queue, m_oglBuffer0, null, null);
        	clEnqueueReleaseGLObjects(m_queue, m_oglBuffer1, null, null);
        	clEnqueueReleaseGLObjects(m_queue, m_oglBuffer2, null, null);
-       //	clEnqueueReleaseGLObjects(m_queue, m_oglBuffer3, null, null);
+       	clEnqueueReleaseGLObjects(m_queue, m_oglBuffer3, null, null);
     	   	
         updateInput();
         //Bind and Clear Framebuffer
@@ -372,7 +372,7 @@ public class Visualizer extends FrameWork
         //clEnqueueAcquireGLObjects(m_queue, m_oglBuffer0, null, null);
         clEnqueueAcquireGLObjects(m_queue, m_oglBuffer1, null, null);
        	clEnqueueAcquireGLObjects(m_queue, m_oglBuffer2, null, null);
-       	//clEnqueueAcquireGLObjects(m_queue, m_oglBuffer3, null, null);
+       	clEnqueueAcquireGLObjects(m_queue, m_oglBuffer3, null, null);
 
         m_timer.tick();
         Display.setTitle("SPH Simulation (FPS: "+m_timer.getFps()+")");
