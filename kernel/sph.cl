@@ -199,17 +199,17 @@ global uint* data
 	
 	float r;
 	r = fast_distance(pos, down);
-	if(r < 0.05){ a_W += (0.05 - r) * (pos - down) / (fast_length(pos - down) * pown(DELTA_T,2)); }
+	if(r < 0.05){ a_W += (0.05 - r) * (pos - down) / (fast_length(pos - down) * pown(DELTA_T,2)); body_V[id].y = max(0.0, body_V[id].y);}
 	r = fast_distance(pos, up);
-	if(r < 0.05){ a_W += (0.05 - r)   * (pos - up)   / (fast_length(pos - up)   * pown(DELTA_T,2)); }
+	if(r < 0.05){ a_W += (0.05 - r)   * (pos - up)   / (fast_length(pos - up)   * pown(DELTA_T,2)); body_V[id].y = min(0.0, body_V[id].y);}
 	r = fast_distance(pos, back);
-	if(r < 0.05){ a_W += (0.05 - r) * (pos - back) / (fast_length(pos - back) * pown(DELTA_T,2)); }
+	if(r < 0.05){ a_W += (0.05 - r) * (pos - back) / (fast_length(pos - back) * pown(DELTA_T,2)); body_V[id].z = min(0.0, body_V[id].z);}
 	r = fast_distance(pos, front);
-	if(r < 0.05){ a_W += (0.05 - r) * (pos - front)/ (fast_length(pos - front)* pown(DELTA_T,2)); }
+	if(r < 0.05){ a_W += (0.05 - r) * (pos - front)/ (fast_length(pos - front)* pown(DELTA_T,2)); body_V[id].z = max(0.0, body_V[id].z);}
 	r = fast_distance(pos, left);
-	if(r < 0.05){ a_W += (0.05 - r) * (pos - left) / (fast_length(pos - left) * pown(DELTA_T,2)); }
+	if(r < 0.05){ a_W += (0.05 - r) * (pos - left) / (fast_length(pos - left) * pown(DELTA_T,2)); body_V[id].x = max(0.0, body_V[id].x);}
 	r = fast_distance(pos, right);
-	if(r < 0.05){ a_W += (0.05 - r) * (pos - right)/ (fast_length(pos - right)* pown(DELTA_T,2)); }
+	if(r < 0.05){ a_W += (0.05 - r) * (pos - right)/ (fast_length(pos - right)* pown(DELTA_T,2)); body_V[id].x = min(0.0, body_V[id].x);}
 
 	body_V[id] += (a_V + a_P + a_W + g) * DELTA_T;
 }
@@ -223,17 +223,29 @@ global uint* data
 }
 
 
+
 kernel void sph_CalcNewPos(
 global float4* body_Pos, 
 global float4* body_V,
 const float DELTA_T,
-global uint* data
+global uint* data,
+global float* presets
 )
 {
     uint id = get_global_id(0);
-   
+    float size = presets[0];
+    float in_x = presets[1];
+    float in_z = presets[2];
+    float out_x = presets[3];
+    float out_z = presets[4];
     float4 pos = body_Pos[id] + body_V[id] * DELTA_T;
-    body_Pos[id] = pos;
+    if(size >= 0.1f && pos.x > out_x - size && pos.x < out_x + size && pos.z < out_z + size && pos.z > out_z - size && pos.y < -0.9) {
+    	body_Pos[id] = (float4)(clamp(in_x + (pos.x - (out_x - size))/2, -0.9, 0.9), 0.9 + (0.9 + pos.y)/2,  clamp(in_z + ((out_z - size)+ pos.z)/2, -0.9, 0.9), pos.w);
+    	//body_Pos[id] = (float4)(-0.7 +(id % 100)/500, 0.7 - (id % 100)/500,  0.7 - (id % 100)/500, pos.w);
+    	body_V[id] = (float4)(0, -500, 0, 0);
+    } else {
+    	body_Pos[id] = pos;
+    }
     
     int3 gridPos = convert_int3((BUFFER_SIZE_SIDE - 1) * (pos.xyz + (float3)1) / 2);
     int cnt_ind = BUFFER_SIZE_DEPTH * (gridPos.x + BUFFER_SIZE_SIDE * gridPos.y + BUFFER_SIZE_SIDE * BUFFER_SIZE_SIDE * gridPos.z);

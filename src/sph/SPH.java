@@ -17,12 +17,15 @@ import static pa.cl.OpenCL.clReleaseProgram;
 import static pa.cl.OpenCL.clReleaseKernel;
 import static pa.cl.OpenCL.clSetKernelArg;
 
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 
 import org.lwjgl.BufferUtils;
 import org.lwjgl.LWJGLException;
 import org.lwjgl.PointerBuffer;
+import org.lwjgl.input.Keyboard;
 import org.lwjgl.opencl.CL11;
 import org.lwjgl.opencl.CLCommandQueue;
 import org.lwjgl.opencl.CLContext;
@@ -39,7 +42,7 @@ import pa.util.IOUtil;
 import pa.util.math.MathUtil;
 import sph.helper.Settings;
 
-public class SPH {
+public class SPH{
 	/*
 	private final int n = 23;
 	private final int gridSize = 30;
@@ -57,6 +60,9 @@ public class SPH {
 	private final int N = n * n * n;
 	private float rho = 0.0035f;
 	private final float m = 5 / ((float) N * vol);
+	private float[] inflowPresets = {-0.65f, 0.65f, 0.65f, -0.65f}; //format: x1, z1, x2, z2... with y being constant
+	private float[] drainPresets = {0.35f, -0.35f, -0.35f, 0.35f};
+	private int drainPreset = 0;
 	/*
 	kernel-Params:
 	#define BUFFER_SIZE_SIDE 24
@@ -82,6 +88,7 @@ public class SPH {
 	private PointerBuffer gws_CellCnt = new PointerBuffer(1);
 	private PointerBuffer gws_SurfaceCnt = new PointerBuffer(1);
 	private FloatBuffer float_buffer = BufferUtils.createFloatBuffer(4 * N);
+	private FloatBuffer presetBufferHost = BufferUtils.createFloatBuffer(5);
 	
 	// private IntBuffer int_buffer =
 	// BufferUtils.createIntBuffer(dataBufferSize[0]*dataBufferSize[1]*dataBufferSize[2]*dataBufferSize[3]);
@@ -110,6 +117,7 @@ public class SPH {
 	private CLMem body_rho;
 	private CLMem grid_normals;
 	private CLMem COUNT;
+	private CLMem presetBuffer;
 
 	private boolean initialized = false;
 
@@ -118,7 +126,7 @@ public class SPH {
 		if (initialized) {
 			return;
 		}
-		vis = new Visualizer(1024, 768);
+		vis = new Visualizer(this, 1024, 768);
 		try {
 			vis.create();
 		} catch (LWJGLException e) {
@@ -181,6 +189,8 @@ public class SPH {
 		IntBuffer dataStructure = BufferUtils.createIntBuffer(dataBufferSize[0]
 				* dataBufferSize[1] * dataBufferSize[2] * dataBufferSize[3]);
 		clDataStructure = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, dataStructure);
+		
+		presetBuffer = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, presetBufferHost);
 		
 		IntBuffer COUNT_buffer = BufferUtils.createIntBuffer(1);
 
@@ -278,6 +288,9 @@ public class SPH {
 		clSetKernelArg(sph_calcNewPos, 1, body_V);
 		clSetKernelArg(sph_calcNewPos, 2, vis.getCurrentParams().m_timeStep);
 		clSetKernelArg(sph_calcNewPos, 3, clDataStructure);
+		clSetKernelArg(sph_calcNewPos, 4, presetBuffer);
+		
+		setDrainPreset(0, 0.1f);
 		
 		
 
@@ -449,5 +462,41 @@ public class SPH {
 
 	public void setPause(boolean pause) {
 		vis.setPause(pause);
+	}
+	public void processKeyPressed(int key)
+    {
+		if(key == Keyboard.KEY_NUMPAD4)
+        {
+            setDrainPreset(drainPreset - 1);
+        }
+        if(key == Keyboard.KEY_NUMPAD6)
+        { 
+        	setDrainPreset(drainPreset + 1);
+        }
+        if(key == Keyboard.KEY_NUMPAD7)
+        {
+        	setDrainPreset(drainPreset, presetBufferHost.get(0) - 0.1f);
+        }
+        if(key == Keyboard.KEY_NUMPAD9)
+        { 
+        	setDrainPreset(drainPreset, presetBufferHost.get(0) + 0.1f);
+        }
+    }
+	public void setDrainPreset(int preset) {
+		setDrainPreset(preset, -1);
+	}
+	public void setDrainPreset(int preset, float size) {
+		preset = Math.max(0, Math.min(preset, inflowPresets.length/2 - 1));
+		size = Math.max(0, Math.min(size, 20));
+		drainPreset = preset;
+		if(size > 0) {
+			presetBufferHost.put(0, size);
+		}
+		System.out.println("set presets to (size="+size+"), (preset="+preset+")");
+		presetBufferHost.put(1, inflowPresets[preset]);
+		presetBufferHost.put(2, inflowPresets[preset + 1]);
+		presetBufferHost.put(3, drainPresets[preset]);
+		presetBufferHost.put(4, drainPresets[preset + 1]);
+		OpenCL.clEnqueueWriteBuffer(queue, presetBuffer, CL_FALSE, 0, presetBufferHost, null, null);
 	}
 }

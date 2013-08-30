@@ -103,14 +103,17 @@ public class Visualizer extends FrameWork
     protected CLMem m_oglBuffer1;
     protected CLMem m_oglBuffer2;
     protected CLMem m_oglBuffer3;
+    
+    protected SPH sph;
 
     protected FloatBuffer settingsBuffer;
     
     private boolean m_pause = false;
     
-    public Visualizer(int w, int h) 
+    public Visualizer(SPH sph, int w, int h) 
     {
         super(w, h, true, true, "", false, false);
+        this.sph = sph;
     }
     
     public Params getCurrentParams()
@@ -429,6 +432,7 @@ public class Visualizer extends FrameWork
             setBlur(Math.max(Math.min(blur, 20.0f), 0));
             System.out.println("set blur size to: "+ Math.max(Math.min(blur, 20.0f), 0));
         }
+        sph.processKeyPressed(key);
     }
     
     public boolean isPause()
