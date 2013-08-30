@@ -30,7 +30,7 @@ void main()
 	{
 		discard;
 	}
-	float blurSize = 16f/768f;
+	float blurSize = 6f/768f;
 	vec4 blur_thickness = vec4(0.0);   
     for(int i = -2; i <= 2; i++){
     	for(int j = - 2; j <= 2; j++){
