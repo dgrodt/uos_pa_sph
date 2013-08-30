@@ -200,18 +200,19 @@ public class SPH{
 		float[] vertices = new float[2 * 3 * 12 * gridSize * gridSize * gridSize];
 		int[] indices = new int[15 * gridSize * gridSize * gridSize];
 		
-		buffers = vis.createPositions(normals, context, vertices, indices);
+		buffers = vis.createPositions(p ,normals, context, vertices, indices);
 
 		FloatBuffer buffer = BufferUtils.createFloatBuffer(4 * N);
 		body_V = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, buffer);
 
 		surface_Pos = buffers[0];
 		surface_Ind = buffers[1];
+		body_Pos = buffers[3];
 		
 		buffer = BufferUtils.createFloatBuffer(4 * N);
 		buffer.put(p);
 		buffer.rewind();
-		body_Pos = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, buffer);
+		//body_Pos = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, buffer);
 		
 		IntBuffer int_buffer = BufferUtils.createIntBuffer(gridSize * gridSize * gridSize);
 		surface_grid_rho = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, int_buffer);
@@ -292,8 +293,6 @@ public class SPH{
 		
 		setDrainPreset(0, 0.1f);
 		
-		
-
 		clEnqueueNDRangeKernel(queue, sph_calcNewPos, 1, null, gws_BodyCnt,
 				null, null, null);
 	}

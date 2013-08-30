@@ -85,15 +85,17 @@ public class Visualizer extends FrameWork
     
     protected int m_invCameraAdress;
     
-    protected Geometry[] m_buffer = new Geometry[3];
-    
-    protected Program m_program;
+    protected Geometry[] m_buffer = new Geometry[4];
+    protected Geometry dynamicScreenSquad;
+	
+    protected Program m_particleProgram;
     protected Program m_quadProgram;
     protected Program m_envProgram;
     protected Program m_surfaceProgram;
+    protected Program frameBufferProgram;
     
     protected FrameBuffer frameBuffer;
-    
+    protected FrameBuffer thicknessFrameBuffer;
     protected int framebuffer_id;
     protected int depthStencil_id;
     
@@ -103,9 +105,10 @@ public class Visualizer extends FrameWork
     protected CLMem m_oglBuffer1;
     protected CLMem m_oglBuffer2;
     protected CLMem m_oglBuffer3;
-    
-    protected SPH sph;
+    protected CLMem m_oglBuffer4;
 
+    protected SPH sph;
+    
     protected FloatBuffer settingsBuffer;
     
     private boolean m_pause = false;
@@ -123,7 +126,7 @@ public class Visualizer extends FrameWork
     
     public Program getProgram()
     {
-        return m_program;
+        return m_particleProgram;
     }
     
     public Timer getTimer()
@@ -137,8 +140,18 @@ public class Visualizer extends FrameWork
     	//Setup Textures
     	int width = FrameWork.instance().getWidth();
     	int height = FrameWork.instance().getHeight();
-
     	
+        //Setup Program Variables
+		frameBufferProgram = new Program();
+		frameBufferProgram.create("shader/ScreenQuad_VS.glsl", "shader/ScreenQuad_FS.glsl");
+		frameBufferProgram.bindAttributeLocation("vs_in_position", 0);
+		frameBufferProgram.bindAttributeLocation("vs_in_tc", 1);
+		frameBufferProgram.linkAndValidate();
+		frameBufferProgram.bindUniformBlock("Camera", FrameWork.UniformBufferSlots.CAMERA_BUFFER_SLOT);
+		frameBufferProgram.bindUniformBlock("Color", FrameWork.UniformBufferSlots.COLOR_BUFFER_SLOT);
+		frameBufferProgram.bindUniformBlock("Settings", FrameWork.UniformBufferSlots.SETTINGS_BUFFER_SLOT);
+        dynamicScreenSquad = GeometryFactory.createDynamicScreenQuad();
+        
     	//First Texture
     	Texture frameTexture = Texture.create2DTexture("color", GL11.GL_RGBA, GL30.GL_RGBA16F, GL11.GL_FLOAT, width, height, 0, null);
     	//Depth Informations
@@ -151,42 +164,53 @@ public class Visualizer extends FrameWork
     	Texture specTexture = Texture.create2DTexture("specular",GL11.GL_RGB, GL30.GL_RGB16F, GL11.GL_FLOAT, width, height, 4, null);
     	//Diffuse Texture
     	Texture diffTexture = Texture.create2DTexture("diffuse",GL11.GL_RGB, GL30.GL_RGB16F, GL11.GL_FLOAT, width, height, 5, null);
-    	
+    	//Freshnell Texture
+    	Texture freshnelTexture = Texture.create2DTexture("freshel",GL11.GL_RGB, GL30.GL_RGB16F, GL11.GL_FLOAT, width, height, 11, null);
+    	//thickness Texture
+    	Texture thicknessTexture = Texture.create2DTexture("thickness", GL11.GL_RGBA, GL30.GL_RGBA16F, GL11.GL_FLOAT, width, height, 6, null);
     	//Create Frame buffer
-    	frameBuffer = FrameBuffer.createFrameBuffer("main", true, frameTexture, depthTexture, worldTexture, normalTexture, specTexture,diffTexture);   
+        frameBuffer = FrameBuffer.createFrameBuffer(frameBufferProgram ,"main", true, frameTexture, depthTexture, worldTexture, normalTexture, specTexture ,diffTexture);        
+        frameBufferProgram.use();
+        GL20.glUniform1i(frameBufferProgram.getUniformLocation(frameTexture.getDest().name), frameTexture.getUInt());
+        GL20.glUniform1i(frameBufferProgram.getUniformLocation(depthTexture.getDest().name), depthTexture.getUInt());
+        GL20.glUniform1i(frameBufferProgram.getUniformLocation(worldTexture.getDest().name), worldTexture.getUInt());
+        GL20.glUniform1i(frameBufferProgram.getUniformLocation(normalTexture.getDest().name), normalTexture.getUInt());
+        GL20.glUniform1i(frameBufferProgram.getUniformLocation(specTexture.getDest().name), specTexture.getUInt());
+        GL20.glUniform1i(frameBufferProgram.getUniformLocation(diffTexture.getDest().name), diffTexture.getUInt());
+        GL20.glUniform1i(frameBufferProgram.getUniformLocation(freshnelTexture.getDest().name), freshnelTexture.getUInt());
+        GL20.glUniform1i(frameBufferProgram.getUniformLocation(thicknessTexture.getDest().name), thicknessTexture.getUInt());
         
-        Texture floorTexture = Texture.createFromFile("textures/floor_sand.jpg", 4);
-        Texture floorBumpTexture = Texture.createFromFile("textures/floor_sand_bump.jpg", 5);
+        thicknessFrameBuffer = FrameBuffer.createFrameBuffer(null, "thickness", true, thicknessTexture);
+        //Setup Particle Program
+        m_particleProgram = new Program();
+        m_particleProgram.create("shader/Particles_VS.glsl", "shader/Particles_FS.glsl");
+        m_particleProgram.bindAttributeLocation("vs_in_pos", 0);
+        m_particleProgram.bindAttributeLocation("vs_in_normal", 1);
+        m_particleProgram.bindAttributeLocation("vs_in_tc", 2);
+        m_particleProgram.bindAttributeLocation("vs_in_instance", 3);
+        m_particleProgram.linkAndValidate();
+        m_particleProgram.bindUniformBlock("Camera", FrameWork.UniformBufferSlots.CAMERA_BUFFER_SLOT);
+        m_particleProgram.bindUniformBlock("Color", FrameWork.UniformBufferSlots.COLOR_BUFFER_SLOT);
+        m_particleProgram.bindUniformBlock("Settings", FrameWork.UniformBufferSlots.SETTINGS_BUFFER_SLOT);
+        m_particleProgram.use();
+        GL20.glUniform1i(m_particleProgram.getUniformLocation(thicknessTexture.getDest().name), thicknessTexture.getUInt());
+        
+        Matrix4f m = new Matrix4f();
+        m.setIdentity();
+        m.store(MATRIX4X4_BUFFER);
+        MATRIX4X4_BUFFER.flip();
+  
+        m_invCameraAdress = m_particleProgram.getUniformLocation("invCamera");
+        GL20.glUniformMatrix4(m_invCameraAdress, false, MATRIX4X4_BUFFER);
+
+        Texture floorTexture = Texture.createFromFile("textures/floor_sand.jpg", 8);
+        Texture floorBumpTexture = Texture.createFromFile("textures/floor_sand_bump.jpg", 9);
         GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER, GL11.GL_LINEAR_MIPMAP_LINEAR);
         GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MAG_FILTER, GL11.GL_LINEAR);
         
         GLUtil.checkError();
-//        //Setup Particle Program
-//        m_program = new Program();
-//        m_program.create("shader/Particles_VS.glsl", "shader/Particles_FS.glsl");
-//        m_program.bindAttributeLocation("vs_in_pos", 0);
-//        m_program.bindAttributeLocation("vs_in_normal", 1);
-//        m_program.bindAttributeLocation("vs_in_tc", 2);
-//        m_program.bindAttributeLocation("vs_in_instance", 3);
-//        m_program.bindAttributeLocation("vs_in_normal_new", 4);
-//        m_program.linkAndValidate();
-//        m_program.bindUniformBlock("Camera", FrameWork.UniformBufferSlots.CAMERA_BUFFER_SLOT);
-//        m_program.bindUniformBlock("Color", FrameWork.UniformBufferSlots.COLOR_BUFFER_SLOT);
-//        m_program.bindUniformBlock("Settings", FrameWork.UniformBufferSlots.SETTINGS_BUFFER_SLOT);
-//        m_program.use();
-//    	GL11.glEnable(GL11.GL_BLEND);
-////    	GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-//        GL11.glDisable(GL11.GL_CULL_FACE);
-//
-//        Matrix4f m = new Matrix4f();
-//        m.setIdentity();
-//        m.store(MATRIX4X4_BUFFER);
-//        MATRIX4X4_BUFFER.flip();
-//  
-//        m_invCameraAdress = m_program.getUniformLocation("invCamera");
-//        GL20.glUniformMatrix4(m_invCameraAdress, false, MATRIX4X4_BUFFER);
 
-        GLUtil.checkError();
+
         //Setup Box Program
     	m_quadProgram = new Program();
     	m_quadProgram.create("shader/Quad_VS.glsl", "shader/Quad_FS.glsl");
@@ -211,8 +235,9 @@ public class Visualizer extends FrameWork
     	m_envProgram.bindUniformBlock("Color", FrameWork.UniformBufferSlots.COLOR_BUFFER_SLOT);
     	m_envProgram.bindUniformBlock("Settings", FrameWork.UniformBufferSlots.SETTINGS_BUFFER_SLOT);
     	m_envProgram.use();
-    	GL20.glUniform1i(m_envProgram.getUniformLocation("floorTex"), 4);
-    	GL20.glUniform1i(m_envProgram.getUniformLocation("floorBumpTex"), 5);
+
+    	GL20.glUniform1i(m_envProgram.getUniformLocation("floorTex"), floorTexture.getUInt());
+    	GL20.glUniform1i(m_envProgram.getUniformLocation("floorBumpTex"), floorBumpTexture.getUInt());
     	
     	//Setup Surface Program
     	m_surfaceProgram = new Program();
@@ -236,6 +261,8 @@ public class Visualizer extends FrameWork
         GLUtil.checkError();
         m_camera.lookAt(new Vector3f(1.5f,0.6f, -2), new Vector3f(0, 0.2f, 0));
         uploadCameraBuffer();
+        
+     	GL11.glClearColor(0.0f, 0.0f, 0.0f, 1.0f );
         GLUtil.checkError();
     }
 
@@ -269,6 +296,8 @@ public class Visualizer extends FrameWork
         
         m_quadProgram.delete();
         m_surfaceProgram.delete();
+        frameBufferProgram.delete();
+        
         if(m_buffer[0] != null)
         {
         	m_buffer[0].delete();	
@@ -281,7 +310,13 @@ public class Visualizer extends FrameWork
         {
         	m_buffer[2].delete();	
         }
+        if(m_buffer[3] != null)
+        {
+        	m_buffer[3].delete();	
+        }
         frameBuffer.delete();
+        thicknessFrameBuffer.delete();
+        dynamicScreenSquad.delete();
         destroy();
     }
     
@@ -292,7 +327,7 @@ public class Visualizer extends FrameWork
         clSetKernelArg(m_kernel, 2, m_currentParams.m_timeStep);
     }
     
-    public CLMem[] createPositions(float[] normal, CLContext context, float[] vertices, int[] indices) {
+    public CLMem[] createPositions(float[] pos,float[] normal, CLContext context, float[] vertices, int[] indices) {
 
 //		if (m_buffer[0] != null) {
 //			m_buffer[0].delete();
@@ -319,19 +354,28 @@ public class Visualizer extends FrameWork
 		
 		m_buffer[2] = GeometryFactory.createSurface(new float[] { 0, 0, 0 }, vertices, indices);
 		
+		if (m_buffer[3] != null) {
+			m_buffer[3].delete();
+		}
+		
+		m_buffer[3] = GeometryFactory.createParticles(pos, m_currentParams.m_pointSize * 1.6f, 4);
+		
 		m_oglBuffer1 = clCreateFromGLBuffer(context, CL_MEM_READ_WRITE,
 				m_buffer[2].getVertexBuffer().getId());
 		m_oglBuffer2 = clCreateFromGLBuffer(context, CL_MEM_READ_WRITE,
 				m_buffer[2].getIndexBuffer().getId());
+		m_oglBuffer4 = clCreateFromGLBuffer(context, CL_MEM_READ_WRITE,
+				m_buffer[3].getInstanceBuffer(0).getId());
 
 		
-		CLMem pair[] = new CLMem[2];
+		CLMem pair[] = new CLMem[4];
 		pair[0] = m_oglBuffer1;
 		pair[1] = m_oglBuffer2;
+		pair[3] = m_oglBuffer4;
 
 		clEnqueueAcquireGLObjects(m_queue, m_oglBuffer1, null, null);
 		clEnqueueAcquireGLObjects(m_queue, m_oglBuffer2, null, null);
-
+		clEnqueueAcquireGLObjects(m_queue, m_oglBuffer4, null, null);
 		return pair;
 	}
 
@@ -345,44 +389,66 @@ public class Visualizer extends FrameWork
 
        	clEnqueueReleaseGLObjects(m_queue, m_oglBuffer1, null, null);
        	clEnqueueReleaseGLObjects(m_queue, m_oglBuffer2, null, null);
-    	   	
+       	clEnqueueReleaseGLObjects(m_queue, m_oglBuffer4, null, null); 
+       	
+    	GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, 0);
+     	GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT);
+     	GL11.glClearColor(0.0f, 0.0f, 0.0f, 1.0f );
+     	 GLUtil.checkError();
         updateInput();
-        //Bind and Clear Framebuffer
-        frameBuffer.renderToFramebuffer();
-        
         //Draw skybox
         m_envProgram.use();
         GL11.glDisable(GL11.GL_CULL_FACE);
         setColor(1f, 1f, 1f, 1f);
         m_buffer[0].draw();
         GL11.glEnable(GL11.GL_CULL_FACE);
-        /*
-        //Draw Particles
-        m_program.use();
-        setColor(0.5f, 0.5f, 1f, 1f);
+        GLUtil.checkError();
+        
+        //Draw Cube
+        m_quadProgram.use();
+      	setColor(1f, 1f, 1f, 1f);
+      	m_buffer[1].draw(); 
 
-        m_buffer[0].draw();
-        */
+      	thicknessFrameBuffer.renderToFramebuffer();
+      	GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT);
+      	//Draw Thickness
+      	m_particleProgram.use();
+  		GL11.glEnable(GL11.GL_BLEND);
+  		GL11.glBlendFunc(GL11.GL_SRC_ALPHA,GL11.GL_ONE_MINUS_DST_ALPHA);
+  		GL11.glDisable(GL11.GL_DEPTH_TEST);
+  		GL11.glDepthFunc(GL11.GL_ALWAYS);
+      	setColor(1f, 1f, 1f, 0.1f);
+      	m_buffer[3].draw();
+      	GL11.glEnable(GL11.GL_DEPTH_TEST);
+      	GL11.glDepthFunc(GL11.GL_LESS);
+      	GL11.glDisable(GL11.GL_BLEND);
+      	
+        //Bind and Clear Framebuffer
+        frameBuffer.renderToFramebuffer();
+        GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT);
+        GL11.glEnable(GL11.GL_BLEND);
+        GL11.glBlendFunc(GL11.GL_DST_ALPHA,GL11.GL_ONE_MINUS_DST_ALPHA);
+        //Draw Surface
         m_surfaceProgram.use();
-   		GL11.glEnable(GL11.GL_BLEND);	
-		GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE);
-	    GL11.glDisable(GL11.GL_DEPTH_TEST);
-	    //Draw Surface
         setColor(0.3f, 0.3f, 1f, 0.8f);
         m_buffer[2].draw();
-        
-        m_quadProgram.use();
-        setColor(0.3f, 0.3f, 0.3f, 1f);
-        m_buffer[1].draw();
-        
-        //Swap back to Backbuffer and Draw Texture
-        frameBuffer.renderToBackbuffer(0);
-        
+
+        GL11.glDisable(GL11.GL_BLEND);
+        //Swap back to Backbuffer 
+        frameBuffer.renderToBackbuffer();
+        //GL20.glUniform1i(frameBufferProgram.getUniformLocation("thickness"), 6);
+        frameBufferProgram.use();
+        //GL11.glEnable(GL11.GL_BLEND);
+        //GL11.glBlendFunc(GL11.GL_DST_COLOR,GL11.GL_ONE_MINUS_DST_COLOR);
+        setColor(0.3f, 0.3f, 1f, 0.8f);
+        dynamicScreenSquad.draw();
+        //GL11.glDisable(GL11.GL_BLEND);
+
         Display.update();
-        
+     	
         clEnqueueAcquireGLObjects(m_queue, m_oglBuffer1, null, null);
        	clEnqueueAcquireGLObjects(m_queue, m_oglBuffer2, null, null);
-
+       	clEnqueueAcquireGLObjects(m_queue, m_oglBuffer4, null, null);
         m_timer.tick();
         Display.setTitle("SPH Simulation (FPS: "+m_timer.getFps()+")");
         GLUtil.checkError();
@@ -397,19 +463,19 @@ public class Visualizer extends FrameWork
     public void processMouseMoved(int x, int y, int dx, int dy) 
     {
         super.processMouseMoved(x, y, dx, dy);
-//        if(m_enableCamera && Mouse.isGrabbed())
-//        {
-//            m_program.use();
-//            Matrix4f mat = new Matrix4f();
-//            mat.rotate(m_camera.getPhi(), new Vector3f(0, 1, 0));
-//            mat.rotate(m_camera.getTheta(), new Vector3f(1, 0, 0));
-//            
-//            mat.store(MATRIX4X4_BUFFER);
-//            MATRIX4X4_BUFFER.position(0);
-//            
-//            GL20.glUniformMatrix4(m_invCameraAdress, false, MATRIX4X4_BUFFER);
-//            
-//        }
+        if(m_enableCamera && Mouse.isGrabbed())
+        {
+            m_particleProgram.use();
+            Matrix4f mat = new Matrix4f();
+            mat.rotate(m_camera.getPhi(), new Vector3f(0, 1, 0));
+            mat.rotate(m_camera.getTheta(), new Vector3f(1, 0, 0));
+            
+            mat.store(MATRIX4X4_BUFFER);
+            MATRIX4X4_BUFFER.position(0);
+            
+            GL20.glUniformMatrix4(m_invCameraAdress, false, MATRIX4X4_BUFFER);
+            
+        }
     }
     public void processKeyPressed(int key)
     {
