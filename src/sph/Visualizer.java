@@ -152,9 +152,11 @@ public class Visualizer extends FrameWork
     	//Create Frame buffer
     	frameBuffer = FrameBuffer.createFrameBuffer("main", true, frameTexture, depthTexture, worldTexture, normalTexture, specTexture,diffTexture);   
         
-        Texture ceilingTexture = Texture.createFromFile("textures/ceiling.png", 4);
-        Texture floorTexture = Texture.createFromFile("textures/floor.jpg", 5);
-        Texture wallTexture = Texture.createFromFile("textures/wall.png", 6);
+        Texture floorTexture = Texture.createFromFile("textures/floor_sand.jpg", 4);
+        Texture floorBumpTexture = Texture.createFromFile("textures/floor_sand_bump.jpg", 5);
+        GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER, GL11.GL_LINEAR_MIPMAP_LINEAR);
+        GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MAG_FILTER, GL11.GL_LINEAR);
+        
         GLUtil.checkError();
 //        //Setup Particle Program
 //        m_program = new Program();
@@ -194,6 +196,7 @@ public class Visualizer extends FrameWork
     	m_quadProgram.bindUniformBlock("Color", FrameWork.UniformBufferSlots.COLOR_BUFFER_SLOT);
     	m_quadProgram.bindUniformBlock("Settings", FrameWork.UniformBufferSlots.SETTINGS_BUFFER_SLOT);
     	m_quadProgram.use();
+    	
     	m_envProgram = new Program();
     	m_envProgram.create("shader/Env_VS.glsl", "shader/Env_FS.glsl");
     	m_envProgram.bindAttributeLocation("vs_in_pos", 0);
@@ -205,9 +208,8 @@ public class Visualizer extends FrameWork
     	m_envProgram.bindUniformBlock("Color", FrameWork.UniformBufferSlots.COLOR_BUFFER_SLOT);
     	m_envProgram.bindUniformBlock("Settings", FrameWork.UniformBufferSlots.SETTINGS_BUFFER_SLOT);
     	m_envProgram.use();
-    	GL20.glUniform1i(m_envProgram.getUniformLocation("ceilingTex"), 4);
-    	GL20.glUniform1i(m_envProgram.getUniformLocation("floorTex"), 5);
-    	GL20.glUniform1i(m_envProgram.getUniformLocation("wallTex"), 6);
+    	GL20.glUniform1i(m_envProgram.getUniformLocation("floorTex"), 4);
+    	GL20.glUniform1i(m_envProgram.getUniformLocation("floorBumpTex"), 5);
     	
     	//Setup Surface Program
     	m_surfaceProgram = new Program();
@@ -215,26 +217,21 @@ public class Visualizer extends FrameWork
     	m_surfaceProgram.bindAttributeLocation("vs_in_pos", 0);
     	m_surfaceProgram.bindAttributeLocation("vs_in_normal", 1);
     	m_surfaceProgram.bindAttributeLocation("vs_in_tc", 2);
-    	GLUtil.checkError();
     	m_surfaceProgram.bindAttributeLocation("vs_in_instance", 3);
-    	GLUtil.checkError();
     	m_surfaceProgram.linkAndValidate();
     	m_surfaceProgram.bindUniformBlock("Camera", FrameWork.UniformBufferSlots.CAMERA_BUFFER_SLOT);
     	m_surfaceProgram.bindUniformBlock("Color", FrameWork.UniformBufferSlots.COLOR_BUFFER_SLOT);
     	m_surfaceProgram.bindUniformBlock("Settings", FrameWork.UniformBufferSlots.SETTINGS_BUFFER_SLOT);
-    	GLUtil.checkError();
     	m_surfaceProgram.use();
-    	GLUtil.checkError();
         FloatBuffer data = BufferUtils.createFloatBuffer(4);
         data.put(0.5f); data.put(1); data.put(0); data.put(1);
         data.flip();
         m_color.loadFloatData(data, GL15.GL_DYNAMIC_DRAW);
-        GLUtil.checkError();
         //setBlur(10.0f);
         
         m_camera.setSpeed(0.25f);
         GLUtil.checkError();
-        m_camera.lookAt(new Vector3f(0,0, m_currentParams.m_z), new Vector3f());
+        m_camera.lookAt(new Vector3f(1.5f,0.6f, -2), new Vector3f(0, 0.2f, 0));
         uploadCameraBuffer();
         GLUtil.checkError();
     }
