@@ -17,7 +17,7 @@ out vec4 fs_in_ViewPos;
 void main()
 {
     fs_in_normal = vs_in_normal; //g_model
-    fs_in_tc = vs_in_tc;
+    fs_in_tc = vs_in_tc; 
     
     vec4 vPos = invCamera * vec4(vs_in_pos, 0);
     

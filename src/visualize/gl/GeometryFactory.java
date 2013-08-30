@@ -316,16 +316,20 @@ public class GeometryFactory
         
         float vertices[] = 
             {
-                -size, -size, 0,0, 0, 1, 0, 0, 1,
-                +size, -size, 0,0, 0, 1, 0, 1, 1,
-                -size, +size, 0,0, 0, 1, 0, 0, 0,
-                +size, +size, 0,0, 0, 1, 0, 1, 0,
+                //-size, -size, 0, 0, 0, 1, 0, 0, 1,
+                //+size, -size, 0, 0, 0, 1, 0, 1, 1,
+                //-size, +size, 0, 0, 0, 1, 0, 0, 0,
+                //+size, +size, 0, 0, 0, 1, 0, 1, 0,
+                -size, -size, 0, 0, 0, 1,
+                +size, -size, 0, 0, 1, 1,
+                -size, +size, 0, 0, 0, 0,
+                +size, +size, 0, 0, 1, 0,
             };
         
         int indices[] = {0,1,2,3};
 
         geo.create(vertices, GL15.GL_STATIC_DRAW, indices, GL15.GL_STATIC_DRAW, GL11.GL_TRIANGLE_STRIP, 
-                new VertexPointer(0, 4, 0), new VertexPointer(1, 3, 12), new VertexPointer(2, 2, 24));
+                new VertexPointer(0, 4, 0), new VertexPointer(2, 2, 4*4));//, new VertexPointer(2, 2, 8*4));
         geo.addInstanceBuffer(instances, stride, 3, GL15.GL_DYNAMIC_DRAW);
         return geo; 
     }

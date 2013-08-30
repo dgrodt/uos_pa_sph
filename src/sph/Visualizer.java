@@ -86,14 +86,16 @@ public class Visualizer extends FrameWork
     protected int m_invCameraAdress;
     
     protected Geometry[] m_buffer = new Geometry[4];
-    
+    protected Geometry dynamicScreenSquad;
+	
     protected Program m_particleProgram;
     protected Program m_quadProgram;
     protected Program m_envProgram;
     protected Program m_surfaceProgram;
+    protected Program frameBufferProgram;
     
     protected FrameBuffer frameBuffer;
-    
+    protected FrameBuffer thicknessFrameBuffer;
     protected int framebuffer_id;
     protected int depthStencil_id;
     
@@ -135,6 +137,18 @@ public class Visualizer extends FrameWork
     	//Setup Textures
     	int width = FrameWork.instance().getWidth();
     	int height = FrameWork.instance().getHeight();
+    	
+        //Setup Program Variables
+		frameBufferProgram = new Program();
+		frameBufferProgram.create("shader/ScreenQuad_VS.glsl", "shader/ScreenQuad_FS.glsl");
+		frameBufferProgram.bindAttributeLocation("vs_in_position", 0);
+		frameBufferProgram.bindAttributeLocation("vs_in_tc", 1);
+		frameBufferProgram.linkAndValidate();
+		frameBufferProgram.bindUniformBlock("Camera", FrameWork.UniformBufferSlots.CAMERA_BUFFER_SLOT);
+		frameBufferProgram.bindUniformBlock("Color", FrameWork.UniformBufferSlots.COLOR_BUFFER_SLOT);
+		frameBufferProgram.bindUniformBlock("Settings", FrameWork.UniformBufferSlots.SETTINGS_BUFFER_SLOT);
+        dynamicScreenSquad = GeometryFactory.createDynamicScreenQuad();
+        
     	//First Texture
     	Texture frameTexture = Texture.create2DTexture("color", GL11.GL_RGBA, GL30.GL_RGBA16F, GL11.GL_FLOAT, width, height, 0, null);
     	//Depth Informations
@@ -148,18 +162,22 @@ public class Visualizer extends FrameWork
     	//Diffuse Texture
     	Texture diffTexture = Texture.create2DTexture("diffuse",GL11.GL_RGB, GL30.GL_RGB16F, GL11.GL_FLOAT, width, height, 5, null);
     	//Freshnell Texture
-    	//Texture freshnelTexture = Texture.create2DTexture("freshel",GL11.GL_RGB, GL30.GL_RGB16F, GL11.GL_FLOAT, width, height, 6, null);
+    	Texture freshnelTexture = Texture.create2DTexture("freshel",GL11.GL_RGB, GL30.GL_RGB16F, GL11.GL_FLOAT, width, height, 11, null);
     	//thickness Texture
     	Texture thicknessTexture = Texture.create2DTexture("thickness", GL11.GL_RGBA, GL30.GL_RGBA16F, GL11.GL_FLOAT, width, height, 6, null);
     	//Create Frame buffer
-        frameBuffer = FrameBuffer.createFrameBuffer("main", true, frameTexture, depthTexture, worldTexture, normalTexture, specTexture,diffTexture, thicknessTexture);        
-    	
-    	
-        Texture ceilingTexture = Texture.createFromFile("textures/ceiling.png", 4);
-        Texture floorTexture = Texture.createFromFile("textures/floor.jpg", 5);
-        Texture wallTexture = Texture.createFromFile("textures/wall.png", 6);
-
-        GLUtil.checkError();
+        frameBuffer = FrameBuffer.createFrameBuffer(frameBufferProgram ,"main", true, frameTexture, depthTexture, worldTexture, normalTexture, specTexture ,diffTexture);        
+        frameBufferProgram.use();
+        GL20.glUniform1i(frameBufferProgram.getUniformLocation(frameTexture.getDest().name), frameTexture.getUInt());
+        GL20.glUniform1i(frameBufferProgram.getUniformLocation(depthTexture.getDest().name), depthTexture.getUInt());
+        GL20.glUniform1i(frameBufferProgram.getUniformLocation(worldTexture.getDest().name), worldTexture.getUInt());
+        GL20.glUniform1i(frameBufferProgram.getUniformLocation(normalTexture.getDest().name), normalTexture.getUInt());
+        GL20.glUniform1i(frameBufferProgram.getUniformLocation(specTexture.getDest().name), specTexture.getUInt());
+        GL20.glUniform1i(frameBufferProgram.getUniformLocation(diffTexture.getDest().name), diffTexture.getUInt());
+        GL20.glUniform1i(frameBufferProgram.getUniformLocation(freshnelTexture.getDest().name), freshnelTexture.getUInt());
+        GL20.glUniform1i(frameBufferProgram.getUniformLocation(thicknessTexture.getDest().name), thicknessTexture.getUInt());
+        
+        thicknessFrameBuffer = FrameBuffer.createFrameBuffer(null, "thickness", true, thicknessTexture);
         //Setup Particle Program
         m_particleProgram = new Program();
         m_particleProgram.create("shader/Particles_VS.glsl", "shader/Particles_FS.glsl");
@@ -172,7 +190,8 @@ public class Visualizer extends FrameWork
         m_particleProgram.bindUniformBlock("Color", FrameWork.UniformBufferSlots.COLOR_BUFFER_SLOT);
         m_particleProgram.bindUniformBlock("Settings", FrameWork.UniformBufferSlots.SETTINGS_BUFFER_SLOT);
         m_particleProgram.use();
-
+        GL20.glUniform1i(m_particleProgram.getUniformLocation(thicknessTexture.getDest().name), thicknessTexture.getUInt());
+        
         Matrix4f m = new Matrix4f();
         m.setIdentity();
         m.store(MATRIX4X4_BUFFER);
@@ -182,6 +201,15 @@ public class Visualizer extends FrameWork
         GL20.glUniformMatrix4(m_invCameraAdress, false, MATRIX4X4_BUFFER);
 
         GLUtil.checkError();
+        
+        
+        Texture ceilingTexture = Texture.createFromFile("textures/ceiling.png", 8);
+        Texture floorTexture = Texture.createFromFile("textures/floor.jpg", 9);
+        Texture wallTexture = Texture.createFromFile("textures/wall.png", 10);
+
+        GLUtil.checkError();
+
+
         //Setup Box Program
     	m_quadProgram = new Program();
     	m_quadProgram.create("shader/Quad_VS.glsl", "shader/Quad_FS.glsl");
@@ -207,9 +235,9 @@ public class Visualizer extends FrameWork
     	m_envProgram.bindUniformBlock("Color", FrameWork.UniformBufferSlots.COLOR_BUFFER_SLOT);
     	m_envProgram.bindUniformBlock("Settings", FrameWork.UniformBufferSlots.SETTINGS_BUFFER_SLOT);
     	m_envProgram.use();
-    	GL20.glUniform1i(m_envProgram.getUniformLocation("ceilingTex"), 4);
-    	GL20.glUniform1i(m_envProgram.getUniformLocation("floorTex"), 5);
-    	GL20.glUniform1i(m_envProgram.getUniformLocation("wallTex"), 6);
+    	GL20.glUniform1i(m_envProgram.getUniformLocation("ceilingTex"), ceilingTexture.getUInt());
+    	GL20.glUniform1i(m_envProgram.getUniformLocation("floorTex"), floorTexture.getUInt());
+    	GL20.glUniform1i(m_envProgram.getUniformLocation("wallTex"), wallTexture.getUInt());
     	
     	//Setup Surface Program
     	m_surfaceProgram = new Program();
@@ -238,6 +266,8 @@ public class Visualizer extends FrameWork
         GLUtil.checkError();
         m_camera.lookAt(new Vector3f(0,0, m_currentParams.m_z), new Vector3f());
         uploadCameraBuffer();
+        
+     	GL11.glClearColor(0.0f, 0.0f, 0.0f, 1.0f );
         GLUtil.checkError();
     }
 
@@ -271,6 +301,8 @@ public class Visualizer extends FrameWork
         
         m_quadProgram.delete();
         m_surfaceProgram.delete();
+        frameBufferProgram.delete();
+        
         if(m_buffer[0] != null)
         {
         	m_buffer[0].delete();	
@@ -288,6 +320,8 @@ public class Visualizer extends FrameWork
         	m_buffer[3].delete();	
         }
         frameBuffer.delete();
+        thicknessFrameBuffer.delete();
+        dynamicScreenSquad.delete();
         destroy();
     }
     
@@ -329,12 +363,12 @@ public class Visualizer extends FrameWork
 			m_buffer[3].delete();
 		}
 		
-		m_buffer[3] = GeometryFactory.createParticles(pos, 0.05f, 4);
+		m_buffer[3] = GeometryFactory.createParticles(pos, m_currentParams.m_pointSize * 1.6f, 4);
 		
 		m_oglBuffer1 = clCreateFromGLBuffer(context, CL_MEM_READ_WRITE,
 				m_buffer[2].getVertexBuffer().getId());
 		m_oglBuffer2 = clCreateFromGLBuffer(context, CL_MEM_READ_WRITE,
-				m_buffer[1].getIndexBuffer().getId());
+				m_buffer[2].getIndexBuffer().getId());
 		m_oglBuffer4 = clCreateFromGLBuffer(context, CL_MEM_READ_WRITE,
 				m_buffer[3].getInstanceBuffer(0).getId());
 
@@ -342,7 +376,6 @@ public class Visualizer extends FrameWork
 		CLMem pair[] = new CLMem[4];
 		pair[0] = m_oglBuffer1;
 		pair[1] = m_oglBuffer2;
-		
 		pair[3] = m_oglBuffer4;
 
 		clEnqueueAcquireGLObjects(m_queue, m_oglBuffer1, null, null);
@@ -363,40 +396,59 @@ public class Visualizer extends FrameWork
        	clEnqueueReleaseGLObjects(m_queue, m_oglBuffer2, null, null);
        	clEnqueueReleaseGLObjects(m_queue, m_oglBuffer4, null, null); 
        	
+    	GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, 0);
+     	GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT);
+     	GL11.glClearColor(0.0f, 0.0f, 0.0f, 1.0f );
+     	 GLUtil.checkError();
         updateInput();
+        //Draw skybox
+        m_envProgram.use();
+        GL11.glDisable(GL11.GL_CULL_FACE);
+        setColor(1f, 1f, 1f, 1f);
+        m_buffer[0].draw();
+        GL11.glEnable(GL11.GL_CULL_FACE);
+        GLUtil.checkError();
+        
+        //Draw Cube
+        m_quadProgram.use();
+      	setColor(1f, 1f, 1f, 1f);
+      	m_buffer[1].draw(); 
+
+      	thicknessFrameBuffer.renderToFramebuffer();
+      	GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT);
+      	//Draw Thickness
+      	m_particleProgram.use();
+  		GL11.glEnable(GL11.GL_BLEND);
+  		GL11.glBlendFunc(GL11.GL_SRC_ALPHA,GL11.GL_ONE_MINUS_DST_ALPHA);
+  		GL11.glDisable(GL11.GL_DEPTH_TEST);
+  		GL11.glDepthFunc(GL11.GL_ALWAYS);
+      	setColor(1f, 1f, 1f, 0.1f);
+      	m_buffer[3].draw();
+      	GL11.glEnable(GL11.GL_DEPTH_TEST);
+      	GL11.glDepthFunc(GL11.GL_LESS);
+      	GL11.glDisable(GL11.GL_BLEND);
+      	
         //Bind and Clear Framebuffer
         frameBuffer.renderToFramebuffer();
-        m_particleProgram.use();
-    	GL11.glEnable(GL11.GL_BLEND);
-    	GL11.glDisable(GL11.GL_DEPTH_TEST);
-    	GL11.glDepthFunc(GL11.GL_ALWAYS);
-    	GL11.glBlendFunc(GL11.GL_SRC_ALPHA,GL11.GL_ONE_MINUS_DST_ALPHA);
-        	setColor(1f, 1f, 1f, 0.1f);
-        	m_buffer[3].draw();
-        GL11.glEnable(GL11.GL_DEPTH_TEST);
-        GL11.glDepthFunc(GL11.GL_LESS);
-        GL11.glDisable(GL11.GL_BLEND);
-        
+        GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT);
+        GL11.glEnable(GL11.GL_BLEND);
+        GL11.glBlendFunc(GL11.GL_DST_ALPHA,GL11.GL_ONE_MINUS_DST_ALPHA);
+        //Draw Surface
         m_surfaceProgram.use();
-//   	GL11.glEnable(GL11.GL_BLEND);	
-//		GL11.glBlendFunc(GL11.GL_ONE_MINUS_DST_ALPHA,GL11.GL_DST_ALPHA);
-//	    GL11.glDisable(GL11.GL_DEPTH_TEST);
-//	    GL11.glEnable(GL11.GL_POLYGON_STIPPLE); 
-    
-
-	    //Draw Surface
         setColor(0.3f, 0.3f, 1f, 0.8f);
         m_buffer[2].draw();
-        
-        m_quadProgram.use();
-        setColor(1f, 1f, 1f, 1f);
-        m_buffer[1].draw();
-        
-        //Swap back to Backbuffer and Draw Texture
-        frameBuffer.renderToBackbuffer(0);
-        
+        GL11.glDisable(GL11.GL_BLEND);
+        //Swap back to Backbuffer 
+        frameBuffer.renderToBackbuffer();
+        //GL20.glUniform1i(frameBufferProgram.getUniformLocation("thickness"), 6);
+        frameBufferProgram.use();
+        //GL11.glEnable(GL11.GL_BLEND);
+        //GL11.glBlendFunc(GL11.GL_DST_COLOR,GL11.GL_ONE_MINUS_DST_COLOR);
+        setColor(0.3f, 0.3f, 1f, 0.8f);
+        dynamicScreenSquad.draw();
+        //GL11.glDisable(GL11.GL_BLEND);
         Display.update();
-        
+     	
         clEnqueueAcquireGLObjects(m_queue, m_oglBuffer1, null, null);
        	clEnqueueAcquireGLObjects(m_queue, m_oglBuffer2, null, null);
        	clEnqueueAcquireGLObjects(m_queue, m_oglBuffer4, null, null);

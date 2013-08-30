@@ -4,16 +4,16 @@
 
 uniform mat4x4 invCamera;
 
-in vec2 fs_in_tc;
-in vec3 fs_in_normal;
 in vec4 fs_in_ViewPos;
+in vec3 fs_in_normal;
+in vec2 fs_in_tc;
 
-layout(location = 6) out vec4 fs_out_color;
+out vec4 fs_out_color;
 
 void main()
 {
-    vec2 tx = fs_in_tc;
-    if(tx.x * tx.x + tx.y * tx.y > 0.5)
+    vec2 tx =  2 * fs_in_tc - 1;
+    if(tx.x * tx.x + tx.y * tx.y > 1)
     {
        discard;
     }

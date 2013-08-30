@@ -18,7 +18,8 @@ import visualize.gl.GeometryFactory.Geometry;
 
 public class FrameBuffer {
 
-	public static FrameBuffer createFrameBuffer(String name, boolean depthStencil, Texture... textures) {
+	public static FrameBuffer createFrameBuffer(Program program, String name, boolean depthStencil, Texture... textures) {
+		
         if(textures.length == 0) {
         	System.out.printf("No textures for FrameBuffer %s given!", name);
             return null;
@@ -40,7 +41,7 @@ public class FrameBuffer {
                 return null;
             }
         }
-        FrameBuffer buffer = new FrameBuffer(name, depthStencil, copiedTextures);
+        FrameBuffer buffer = new FrameBuffer(program ,name, depthStencil, copiedTextures);
        
         if(!buffer.init()) {
             buffer.delete();
@@ -49,25 +50,26 @@ public class FrameBuffer {
         }
         return buffer;
     }
+	
 	//Frame buffer Parameters
 	protected int ID;
 	protected String name;
 	protected boolean deptStencil;
 	protected int deptStencilID;
 	protected Texture textures[];
+	protected Program program;
 	
-	//Program Variables
-	private Program frameBufferProgram;
-	private Geometry dynamicScreenSquad;
     private int m_sLocation = -1;
     private LinkedList<Integer> uniformTexturesIDs = new LinkedList<Integer>();
     private LinkedList<Integer> uniformTexturesUnits = new LinkedList<Integer>();
     private final FloatBuffer quadFloatbuffer = BufferUtils.createFloatBuffer(20);
     private ByteBuffer quadByteBuffer = BufferUtils.createByteBuffer(20 * 4);
+	
     
 	
 	
-	private FrameBuffer(String name, boolean depthStencil, Texture[] textures) {
+	private FrameBuffer(Program program, String name, boolean depthStencil, Texture[] textures) {
+		this.program = program;
 		this.name = name;
 		this.deptStencil = depthStencil;
 		this.textures = textures;
@@ -75,20 +77,6 @@ public class FrameBuffer {
 	
 	private boolean init()
 	{
-        //Setup Program Variables
-		frameBufferProgram = new Program();
-		frameBufferProgram.create("shader/ScreenQuad_VS.glsl", "shader/ScreenQuad_FS.glsl");
-		frameBufferProgram.bindAttributeLocation("vs_in_position", 0);
-		frameBufferProgram.bindAttributeLocation("vs_in_tc", 1);
-		frameBufferProgram.linkAndValidate();
-		frameBufferProgram.bindUniformBlock("Camera", FrameWork.UniformBufferSlots.CAMERA_BUFFER_SLOT);
-		frameBufferProgram.bindUniformBlock("Color", FrameWork.UniformBufferSlots.COLOR_BUFFER_SLOT);
-		frameBufferProgram.bindUniformBlock("Settings", FrameWork.UniformBufferSlots.SETTINGS_BUFFER_SLOT);
-		
-        dynamicScreenSquad = GeometryFactory.createDynamicScreenQuad();
-//        transformScreenQuad(0, 0, this.textures[0].getDest().width, this.textures[0].getDest().height);
-        GLUtil.checkError();
-		
 		this.ID = GL30.glGenFramebuffers();
 		GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, this.ID);
         if(this.ID== 0) {
@@ -109,7 +97,9 @@ public class FrameBuffer {
             this.textures[i].bind();
             GL32.glFramebufferTexture(GL30.GL_FRAMEBUFFER, GL30.GL_COLOR_ATTACHMENT0 + i, this.textures[i].getId(), 0);
             drawBuffers.put(i, GL30.GL_COLOR_ATTACHMENT0 + i);
-            addUniformTexture(textures[i].getDest().name,textures[i].getUInt());
+            if(this.program != null) {
+            	//addUniformTexture(this.program ,textures[i].getDest().name,textures[i].getUInt());
+            }
             if(!this.checkError()) {
                 System.out.printf("Framebuffer %s texture %d failed.\n", this.name, i);
             }                
@@ -121,6 +111,9 @@ public class FrameBuffer {
         return this.checkError();
 	}
 	
+	public int getId(){
+		return this.ID;
+	}
 	public void bind() {
 	    GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, this.ID);
 	}
@@ -129,12 +122,8 @@ public class FrameBuffer {
 		GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, 0);
 	}
 	
-    public void renderToBackbuffer(int uint) {
-        unbind();
-        GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT);
-        GL11.glClearColor(0.0f, 0.0f, 0.0f, 1.0f );
-        drawTexture(uint);
-    }
+    public void renderToBackbuffer() {
+        unbind();    }
 	
     public void renderToFramebuffer(){
     	this.bind();
@@ -180,15 +169,10 @@ public class FrameBuffer {
     }
     
     public void clear() {
-    	FloatBuffer clearColor = BufferUtils.createFloatBuffer(4);
-    	clearColor.put(new float[]{ 0.0f, 0.0f, 0.0f, 0.0f, });
-    	clearColor.position(0);
-        for(int i=0; i < this.textures.length; ++i) {
-            GL30.glClearBuffer(GL11.GL_COLOR, i, clearColor);
-        }
         if(this.deptStencil) {
             GL30.glClearBufferfi(GL30.GL_DEPTH_STENCIL, 0, 1.0f, 0);
         }
+      //GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT);
     }
     
     public void delete() {
@@ -206,8 +190,6 @@ public class FrameBuffer {
             GL30.glDeleteFramebuffers(this.ID);
             this.ID = 0;
         }
-    	frameBufferProgram.delete();
-    	dynamicScreenSquad.delete();
     }
     
     public void drawTexture(){
@@ -216,12 +198,9 @@ public class FrameBuffer {
     
     public void drawTexture(int unit)
     {
-    	frameBufferProgram.use();
-        GL20.glUniform1i(m_sLocation, unit);
         for(int i = 0; i < uniformTexturesIDs.size() && i < uniformTexturesUnits.size(); ++i) {
         	GL20.glUniform1i(uniformTexturesIDs.get(i), uniformTexturesUnits.get(i));
-        }
-        dynamicScreenSquad.draw();
+        }  
         checkError();
     }
     
@@ -234,8 +213,8 @@ public class FrameBuffer {
         b1.position(0);
     }
     
-    public void addUniformTexture(String variableName, int unit) {
-    	int variableID = frameBufferProgram.getUniformLocation(variableName);
+    public void addUniformTexture(Program program, String variableName, int unit) {
+    	int variableID = program.getUniformLocation(variableName);
     	uniformTexturesIDs.add(variableID);
     	uniformTexturesUnits.add(unit);
     }
