@@ -27,6 +27,8 @@ void main()
 	float blurSize = 2f/768f;
 	vec2 fragCoords = vec2(fs_in_tc.x, 1-fs_in_tc.y);
 
+	fs_out_color = texture2D(color, fragCoords) + vec4(0.2);
+
 	vec4 sum = vec4(0.0);   
     for(int i = -2; i <= 2; i++){
     	for(int j = - 2; j <= 2; j++){
@@ -34,7 +36,7 @@ void main()
     	}
     }
 
-    fs_out_color = (texture(color, fragCoords) * texture(diffuse, fragCoords) + vec4(1) * texture(specular, fragCoords));
+    //fs_out_color = (texture(color, fragCoords) * texture(diffuse, fragCoords) + vec4(1) * texture(specular, fragCoords));
     //fs_out_color = sum;
     //fs_out_color += vec4(1) * texture(specular, fragCoords).x;
     //fs_out_color = (cofs.x * vec4(0.1) + cofs.y * texture(color, fragCoords) + vec4(1) * g_ambient) ;//* sum;
