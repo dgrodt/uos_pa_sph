@@ -369,7 +369,7 @@ public class Visualizer extends FrameWork
         m_buffer[2].draw();
         
         m_quadProgram.use();
-        setColor(1f, 1f, 1f, 1f);
+        setColor(0.3f, 0.3f, 0.3f, 1f);
         m_buffer[1].draw();
         
         //Swap back to Backbuffer and Draw Texture
