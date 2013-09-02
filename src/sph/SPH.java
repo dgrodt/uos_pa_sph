@@ -291,7 +291,7 @@ public class SPH{
 		clSetKernelArg(sph_calcNewPos, 3, clDataStructure);
 		clSetKernelArg(sph_calcNewPos, 4, presetBuffer);
 		
-		setDrainPreset(0, 0.1f);
+		setDrainPreset(0, 0);
 		
 		clEnqueueNDRangeKernel(queue, sph_calcNewPos, 1, null, gws_BodyCnt,
 				null, null, null);
