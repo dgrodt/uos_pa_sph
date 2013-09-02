@@ -488,7 +488,7 @@ public class SPH{
 		preset = Math.max(0, Math.min(preset, inflowPresets.length/2 - 1));
 		size = Math.max(0, Math.min(size, 20));
 		drainPreset = preset;
-		if(size > 0) {
+		if(size >= 0) {
 			presetBufferHost.put(0, size);
 		}
 		System.out.println("set presets to (size="+size+"), (preset="+preset+")");
