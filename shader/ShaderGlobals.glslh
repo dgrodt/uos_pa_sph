@@ -78,7 +78,7 @@ vec2 getLight(vec4 fragmentPos, vec3 lightPos, vec3 normal){
     float distSq = dot(l, l);
     float e = 8.0 / (1.0 + distSq);
     l = normalize(l);
-    float id = max(0.1, dot(normal, l));
+    float id = max(0, dot(normal, l));
     
     // --- begin phong
     vec3 v = normalize((g_view*g_eye).xyz - fragmentPos.xyz / fragmentPos.w);

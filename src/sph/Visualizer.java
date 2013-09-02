@@ -165,22 +165,15 @@ public class Visualizer extends FrameWork
     	//Particle normals
     	Texture normalTexture = Texture.create2DTexture("normal",GL11.GL_RGB, GL30.GL_RGB16F, GL11.GL_FLOAT, width, height, 3, null);
     	//specular Informations
-    	Texture specTexture = Texture.create2DTexture("specular",GL11.GL_RGB, GL30.GL_RGB16F, GL11.GL_FLOAT, width, height, 4, null);
+    	Texture specTexture = Texture.create2DTexture("specular",GL11.GL_RED,  GL30.GL_R16F,    GL11.GL_FLOAT, width, height, 4, null);
     	//Diffuse Texture
-    	Texture diffTexture = Texture.create2DTexture("diffuse",GL11.GL_RGB, GL30.GL_RGB16F, GL11.GL_FLOAT, width, height, 5, null);
+    	Texture diffTexture = Texture.create2DTexture("diffuse",GL11.GL_RED,  GL30.GL_R16F,    GL11.GL_FLOAT, width, height, 5, null);
     	//Freshnell Texture
     	//Texture freshnelTexture = Texture.create2DTexture("freshel",GL11.GL_RGB, GL30.GL_RGB16F, GL11.GL_FLOAT, width, height, 11, null);
     	//thickness Texture
     	Texture thicknessTexture = Texture.create2DTexture("thickness", GL11.GL_RGBA, GL30.GL_RGBA16F, GL11.GL_FLOAT, width, height, 6, null);
     	//background texture 
-    	FloatBuffer daaa = BufferUtils.createFloatBuffer(width * height  * 4);
-    	for(int i = 0;  i< daaa.capacity(); ++i)
-    	{
-    		daaa.put(1);
-    	}
-    	daaa.position(0);
-
-    	Texture backgroundTexture = Texture.create2DTexture("background", GL11.GL_RGBA, GL30.GL_RGBA16F, GL11.GL_FLOAT, width, height, 1, daaa);
+    	Texture backgroundTexture = Texture.create2DTexture("background", GL11.GL_RGBA, GL30.GL_RGBA16F, GL11.GL_FLOAT, width, height, 1, null);
     	//Create Frame buffer
         frameBuffer = FrameBuffer.createFrameBuffer(null ,"main", true, frameTexture, depthTexture, worldTexture, normalTexture, specTexture , diffTexture);  
         
@@ -468,7 +461,7 @@ public class Visualizer extends FrameWork
         
         //Draw Cube
         m_quadProgram.use();
-      	setColor(1f, 1f, 1f, 1f);
+      	setColor(0.5f, 0.5f, 0.5f, 1f);
       	m_buffer[1].draw(); 
 
       	thicknessFrameBuffer.renderToFramebuffer();
