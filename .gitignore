@@ -4,3 +4,5 @@ bin
 .project
 .classpath
 *.log
+output
+output/*

@@ -302,7 +302,7 @@ public class SPH{
 		
 		int cnt = 0;
 		long time;
-		
+		boolean firstRun = true;
 		while (!vis.isDone()) {
 			if (!vis.isPause()) {
 				
@@ -353,7 +353,10 @@ public class SPH{
 					System.out.println(System.currentTimeMillis() - time);
 					System.out.println("-------------------------");
 				}
-
+				if(firstRun && Settings.GENERATE_VIDEO) {
+					vis.setPause(true);
+					firstRun = false;
+				}
 			}
 			time = System.currentTimeMillis();
 			vis.visualize();
