@@ -27,6 +27,55 @@ float4 gradWV (float4* r, float h) {
 }
 
 
+
+kernel void sph_CalcNewRho_(
+global float4* body_V,
+global float4* body_Pos,
+global float* body_rho,
+global uint* data,
+const float m,
+const float DELTA_T,
+const float h
+)
+{
+
+	uint id = get_global_id(0);
+	
+	float sum = 0;
+	float4 V = body_V[id];
+	float4 pos = body_Pos[id];
+	int4 gridPos = convert_int4((BUFFER_SIZE_SIDE - 1) * (body_Pos[id] + (float4)1) / 2);
+	
+	for (int l = max(gridPos.x - OFFSET, 0); l <= min(gridPos.x + OFFSET, BUFFER_SIZE_SIDE - 1) ; l++) 
+	{
+		for (int j = max(gridPos.y - OFFSET, 0); j <= min(gridPos.y + OFFSET, BUFFER_SIZE_SIDE - 1) ; j++) 
+		{
+			for (int k = max(gridPos.z - OFFSET, 0); k <= min(gridPos.z + OFFSET, BUFFER_SIZE_SIDE - 1) ; k++) 
+			{
+	 			int cnt_ind = BUFFER_SIZE_DEPTH * (l + BUFFER_SIZE_SIDE * j + BUFFER_SIZE_SIDE * BUFFER_SIZE_SIDE * k);
+				uint cnt = data[cnt_ind];
+								
+				for (int o = 1; o <= cnt; o++) 
+				{
+					int i = data[cnt_ind + o];
+					if (i!=id)
+					{
+						
+						float4 r = pos-body_Pos[i];
+						float4 diff = body_V[i] - V;
+						float4 grad = gradW(&r, h);
+						sum += dot(diff, grad);				
+					}
+				}
+			}
+		}
+	}
+
+	body_rho[id] += DELTA_T * m * sum;
+}
+
+
+
 kernel void sph_CalcNewRho(
 global float4* body_Pos,
 global float* body_rho,

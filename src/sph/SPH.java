@@ -291,7 +291,7 @@ public class SPH{
 		clSetKernelArg(sph_calcNewPos, 3, clDataStructure);
 		clSetKernelArg(sph_calcNewPos, 4, presetBuffer);
 		
-		setDrainPreset(0, 0.1f);
+		setDrainPreset(0, 0);
 		
 		clEnqueueNDRangeKernel(queue, sph_calcNewPos, 1, null, gws_BodyCnt,
 				null, null, null);
@@ -302,7 +302,7 @@ public class SPH{
 		
 		int cnt = 0;
 		long time;
-		
+		boolean firstRun = true;
 		while (!vis.isDone()) {
 			if (!vis.isPause()) {
 				
@@ -353,7 +353,10 @@ public class SPH{
 					System.out.println(System.currentTimeMillis() - time);
 					System.out.println("-------------------------");
 				}
-
+				if(firstRun && Settings.GENERATE_VIDEO) {
+					vis.setPause(true);
+					firstRun = false;
+				}
 			}
 			time = System.currentTimeMillis();
 			vis.visualize();
