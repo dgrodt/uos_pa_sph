@@ -476,7 +476,7 @@ public class Visualizer extends FrameWork
        	clEnqueueAcquireGLObjects(m_queue, m_oglBuffer2, null, null);
        	clEnqueueAcquireGLObjects(m_queue, m_oglBuffer4, null, null);
        	
-       	if(Settings.GENERATE_VIDEO) {
+       	if(Settings.GENERATE_VIDEO && !isPause()) {
        		GL11.glReadPixels(0, 0, 1024, 768, GL11.GL_RGB, GL11.GL_UNSIGNED_INT, imageBuffer);
        		BufferedImage image = new BufferedImage(1024, 768, BufferedImage.TYPE_INT_RGB);
             WritableRaster raster = (WritableRaster) image.getData();
