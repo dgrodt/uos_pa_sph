@@ -13,7 +13,7 @@ out vec4 fs_out_color;
 void main()
 {
     vec2 tx =  2 * fs_in_tc - 1;
-    if(tx.x * tx.x + tx.y * tx.y > 1)
+    if(tx.x * tx.x + tx.y * tx.y > 1  || fs_in_ViewPos == vec4(0))
     {
        discard;
     }

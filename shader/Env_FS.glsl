@@ -1,5 +1,5 @@
 #version 330
-
+#extension GL_ARB_separate_shader_objects : enable
 #include "shader/ShaderGlobals.glslh"
 
 in vec2 fs_in_tc;
@@ -9,11 +9,13 @@ in vec3 fs_in_pos;
 uniform sampler2D floorTex;
 uniform sampler2D floorBumpTex;
 
+
 const vec4 fog_colour = vec4 (0.0, 0.0, 0.0, 1);
 const float min_fog_radius = 5.0;
 const float max_fog_radius = 15.0;
 
 out vec4 fs_out_color;
+
 void main()
 {
 	vec4 col;
@@ -39,7 +41,7 @@ void main()
     	col = vec4(0, 0, 0, 1);
     }
     // blend the fog colour with the lighting colour, based on the fog factor
-	fs_out_color = mix (col, fog_colour, fog_fac);
+	fs_out_color = mix(col, fog_colour, fog_fac);
 	//fs_out_color = col;
 	fs_out_color.a = 1.0f;
 }
