@@ -9,8 +9,15 @@ import static pa.cl.OpenCL.clEnqueueReleaseGLObjects;
 import static pa.cl.OpenCL.clReleaseMemObject;
 import static pa.cl.OpenCL.clSetKernelArg;
 
+import java.awt.image.BufferedImage;
+import java.awt.image.WritableRaster;
+import java.io.File;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
+import java.nio.IntBuffer;
+
+import javax.imageio.ImageIO;
 
 import org.lwjgl.BufferUtils;
 import org.lwjgl.input.Keyboard;
@@ -30,6 +37,8 @@ import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector3f;
 
 import pa.cl.OpenCL;
+import pa.util.math.MathUtil;
+import sph.helper.Settings;
 
 import visualize.FrameWork;
 import visualize.gl.FrameBuffer;
@@ -110,8 +119,12 @@ public class Visualizer extends FrameWork
     protected SPH sph;
     
     protected FloatBuffer settingsBuffer;
+    protected IntBuffer imageBuffer;
+    protected int[] imageBufferArray;
     
     private boolean m_pause = false;
+    
+    protected long imageCount = -1;
     
     public Visualizer(SPH sph, int w, int h) 
     {
@@ -264,6 +277,13 @@ public class Visualizer extends FrameWork
         
      	GL11.glClearColor(0.0f, 0.0f, 0.0f, 1.0f );
         GLUtil.checkError();
+        
+        if(Settings.GENERATE_VIDEO) {
+        	(new File(Settings.OUTPUT_FOLDER)).mkdir();
+        	imageBuffer = BufferUtils.createIntBuffer(width*height*3);
+        	imageCount = 0;
+        	imageBufferArray = new int[imageBuffer.capacity()];
+        }
     }
 
     @Override
@@ -292,6 +312,12 @@ public class Visualizer extends FrameWork
         	clEnqueueReleaseGLObjects(m_queue, m_oglBuffer3, null, null);
             clReleaseMemObject(m_oglBuffer3);
             m_oglBuffer3 = null;
+        }
+        if(m_oglBuffer4 != null)
+        {
+        	clEnqueueReleaseGLObjects(m_queue, m_oglBuffer4, null, null);
+            clReleaseMemObject(m_oglBuffer4);
+            m_oglBuffer4 = null;
         }
         
         m_quadProgram.delete();
@@ -449,6 +475,24 @@ public class Visualizer extends FrameWork
         clEnqueueAcquireGLObjects(m_queue, m_oglBuffer1, null, null);
        	clEnqueueAcquireGLObjects(m_queue, m_oglBuffer2, null, null);
        	clEnqueueAcquireGLObjects(m_queue, m_oglBuffer4, null, null);
+       	
+       	if(Settings.GENERATE_VIDEO) {
+       		GL11.glReadPixels(0, 0, 1024, 768, GL11.GL_RGB, GL11.GL_UNSIGNED_INT, imageBuffer);
+       		BufferedImage image = new BufferedImage(1024, 768, BufferedImage.TYPE_INT_RGB);
+            WritableRaster raster = (WritableRaster) image.getData();
+            //float[] tmp = new float[imageBuffer.capacity()];
+           // float[] tmp = new float[1024*768*3];
+            imageBuffer.get(imageBufferArray, 0, imageBufferArray.length);
+            imageBuffer.position(0);
+            raster.setPixels(0,0,1024,768, imageBufferArray);
+            image.setData(raster);
+            flipImage(image);
+            try {
+				ImageIO.write(image, "png", new File("output/frame_"+(++imageCount)+".png"));
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+       	}
         m_timer.tick();
         Display.setTitle("SPH Simulation (FPS: "+m_timer.getFps()+")");
         GLUtil.checkError();
@@ -508,4 +552,22 @@ public class Visualizer extends FrameWork
     public void setPause(boolean pause) {
     	m_pause = pause;
     }
+    void flipImage(BufferedImage image) {
+        WritableRaster raster = image.getRaster();
+        int h = raster.getHeight();
+        int w = raster.getWidth();
+        int x0 = raster.getMinX();
+        int y0 = raster.getMinY();
+        for (int x = x0; x < x0 + w; x++){
+            for (int y = y0; y < y0 + h / 2; y++){
+                int[] pix1 = new int[3];
+                pix1 = raster.getPixel(x, y, pix1);
+                int[] pix2 = new int[3];
+                pix2 = raster.getPixel(x, y0 + h - 1 - (y - y0), pix2);
+                raster.setPixel(x, y, pix2);
+                raster.setPixel(x, y0 + h - 1 - (y - y0), pix1);
+            }
+        }
+        return;
+   }
 }
