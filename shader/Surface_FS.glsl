@@ -6,7 +6,7 @@ in vec2 fs_in_tc;
 in vec3 fs_in_normal;
 in vec4 fs_in_ViewPos;
 in vec3 fs_in_world;
-
+in vec3 refractedVector;
 
 layout(location = 0) out vec4 fs_out_color;
 layout(location = 1) out float fs_out_depth;
@@ -14,7 +14,7 @@ layout(location = 2) out vec3 fs_out_world;
 layout(location = 3) out vec3 fs_out_normal;
 layout(location = 4) out float fs_out_specular;
 layout(location = 5) out float fs_out_diffuse;
-//layout(location = 6) out vec3 fs_out_freshnel;
+layout(location = 6) out vec3 fs_out_freshnel;
 
 void main()
 {
@@ -34,5 +34,9 @@ void main()
     vec2 diff_spec = getLight(worldView, g_lightPos,  normal);
     fs_out_specular =  diff_spec.y;
     fs_out_diffuse  =  diff_spec.x;
-//	fs_out_freshnel = vec3(1);
+    
+    vec3 u = g_eye.xyz - fs_in_world;
+    vec3 v = refract(normalize(u), normal, 1.5f);
+    
+	fs_out_freshnel = refractedVector;
 }

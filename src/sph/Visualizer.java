@@ -169,13 +169,13 @@ public class Visualizer extends FrameWork
     	//Diffuse Texture
     	Texture diffTexture = Texture.create2DTexture("diffuse",GL11.GL_RED,  GL30.GL_R16F,    GL11.GL_FLOAT, width, height, 5, null);
     	//Freshnell Texture
-    	//Texture freshnelTexture = Texture.create2DTexture("freshel",GL11.GL_RGB, GL30.GL_RGB16F, GL11.GL_FLOAT, width, height, 11, null);
+    	Texture freshnelTexture = Texture.create2DTexture("freshel",GL11.GL_RGB, GL30.GL_RGB16F, GL11.GL_FLOAT, width, height, 11, null);
     	//thickness Texture
     	Texture thicknessTexture = Texture.create2DTexture("thickness", GL11.GL_RGBA, GL30.GL_RGBA16F, GL11.GL_FLOAT, width, height, 6, null);
     	//background texture 
     	Texture backgroundTexture = Texture.create2DTexture("background", GL11.GL_RGBA, GL30.GL_RGBA16F, GL11.GL_FLOAT, width, height, 1, null);
     	//Create Frame buffer
-        frameBuffer = FrameBuffer.createFrameBuffer(null ,"main", true, frameTexture, depthTexture, worldTexture, normalTexture, specTexture , diffTexture);  
+        frameBuffer = FrameBuffer.createFrameBuffer(null ,"main", true, frameTexture, depthTexture, worldTexture, normalTexture, specTexture , diffTexture,freshnelTexture);  
         
         envFrameBuffer = FrameBuffer.createFrameBuffer(null, "envBuffer", true, backgroundTexture);
         
@@ -197,7 +197,11 @@ public class Visualizer extends FrameWork
         specTexture.bind();
         diffTexture.activate();
         diffTexture.bind();
-
+        freshnelTexture.activate();
+        freshnelTexture.bind();
+        
+        
+        
         //Setup Program Variables
 		frameBufferProgram = new Program();
 		frameBufferProgram.create("shader/ScreenQuad_VS.glsl", "shader/ScreenQuad_FS.glsl");
@@ -216,7 +220,7 @@ public class Visualizer extends FrameWork
         GL20.glUniform1i(frameBufferProgram.getUniformLocation(normalTexture.getDest().name), normalTexture.getUInt());
         GL20.glUniform1i(frameBufferProgram.getUniformLocation(specTexture.getDest().name), specTexture.getUInt());
         GL20.glUniform1i(frameBufferProgram.getUniformLocation(diffTexture.getDest().name), diffTexture.getUInt());
-//        GL20.glUniform1i(frameBufferProgram.getUniformLocation(freshnelTexture.getDest().name), freshnelTexture.getUInt());
+        GL20.glUniform1i(frameBufferProgram.getUniformLocation(freshnelTexture.getDest().name), freshnelTexture.getUInt());
         GL20.glUniform1i(frameBufferProgram.getUniformLocation(thicknessTexture.getDest().name), thicknessTexture.getUInt());
         GL20.glUniform1i(frameBufferProgram.getUniformLocation(backgroundTexture.getDest().name), backgroundTexture.getUInt());
         
@@ -276,7 +280,6 @@ public class Visualizer extends FrameWork
     	m_envProgram.use();
     	GL20.glUniform1i(m_envProgram.getUniformLocation("floorTex"), floorTexture.getUInt());
     	GL20.glUniform1i(m_envProgram.getUniformLocation("floorBumpTex"), floorBumpTexture.getUInt());
-//    	GL20.glUniform1i(m_envProgram.getUniformLocation(backgroundTexture.getDest().name), backgroundTexture.getUInt());
     	
     	//Setup Surface Program
     	m_surfaceProgram = new Program();
@@ -310,6 +313,24 @@ public class Visualizer extends FrameWork
         	imageCount = 0;
         	imageBufferArray = new int[imageBuffer.capacity()];
         }
+        backgroundTexture.activate();
+        backgroundTexture.bind();
+        thicknessTexture.activate();
+        thicknessTexture.bind();
+        frameTexture.activate();
+        frameTexture.bind();
+        depthTexture.activate();
+        depthTexture.bind();
+        worldTexture.activate();
+        worldTexture.bind();
+        normalTexture.activate();
+        normalTexture.bind();
+        specTexture.activate();
+        specTexture.bind();
+        diffTexture.activate();
+        diffTexture.bind();
+        freshnelTexture.activate();
+        freshnelTexture.bind();
     }
 
     @Override
@@ -442,6 +463,7 @@ public class Visualizer extends FrameWork
        	clEnqueueReleaseGLObjects(m_queue, m_oglBuffer1, null, null);
        	clEnqueueReleaseGLObjects(m_queue, m_oglBuffer2, null, null);
        	clEnqueueReleaseGLObjects(m_queue, m_oglBuffer4, null, null); 
+       	
        	
     	GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, 0);
      	GL11.glClearColor(0.0f, 0.0f, 0.0f, 1.0f );
