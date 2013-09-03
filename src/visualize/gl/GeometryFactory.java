@@ -313,7 +313,6 @@ public class GeometryFactory
     {
         Geometry geo = new Geometry();
         size /= 2.0f;
-        
         float vertices[] = 
             {
                 //-size, -size, 0, 0, 0, 1, 0, 0, 1,

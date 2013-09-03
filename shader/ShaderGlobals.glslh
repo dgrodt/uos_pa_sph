@@ -1,28 +1,3 @@
-#define LIGHT_COUNT 4
-const vec3[LIGHT_COUNT] g_LightsPos = vec3[LIGHT_COUNT] (
-    vec3(0, 2.0, 0),
-    vec3(-8.0, 2.0, -5.0),
-    vec3(-8.0, 2.0, +5.0),
-    vec3(+7.0, 2.0, +5.0));
-const vec3[LIGHT_COUNT] g_LightsColor = vec3[LIGHT_COUNT] (
-    vec3(1.0, 1.0, 1.0),
-    vec3(2.0, 1.0, 1.0),
-    vec3(1.0, 2.0, 1.0),
-    vec3(1.0, 1.0, 2.0));
-const float[LIGHT_COUNT] g_LightsM = float[LIGHT_COUNT] (
-    256.0,
-    128.0,
-    64.0,
-    32.0);
-    
-uniform MaterialBlock
-{
-    vec4 AmbientColor;
-    vec4 DiffuseColor;
-    vec4 SpecularColor;
-    vec4 UseTextures;
-} g_Material;
-
 layout (std140) uniform Camera
 {
     mat4x4 g_view;
@@ -30,19 +5,9 @@ layout (std140) uniform Camera
     vec4 g_eye;
 };
 
-/*layout (std140) uniform Model
-{
-    mat4x4 g_model;
-}; */
-
 layout (std140) uniform Color
 {
     vec4 g_color;
-};
-
-layout (std140) uniform Settings
-{
-	float setting_blur;
 };
 
 const vec3 g_lightPos = vec3( -8, 8, 0);
@@ -87,23 +52,3 @@ vec2 getLight(vec4 fragmentPos, vec3 lightPos, vec3 normal){
     
     return vec2(id,is);
 }
-
-vec3 enlight(vec4 FragmentPos, vec3 lightPos, vec3 lightColor, vec3 kd, vec3 ks, float m, vec3 n)
-{
-    n = normalize(n);
-
-    float lambda = 0.1;
-    float pi = 3.1415926535897932384626433832;
-	vec3 l = lightPos - FragmentPos.xyz / FragmentPos.w;
-	float distSq = dot(l, l);
-    float e = 4.0 / (1.0 + distSq);
-    l = normalize(l);
-	vec3 v = normalize((g_eye).xyz - FragmentPos.xyz / FragmentPos.w);
-	vec3 h = normalize(0.5*(normalize(l) + normalize(v)));
-	float alpha = acos(dot(n,h));
-	float d = exp(-pow(tan(alpha),2)/(m*m))/(pi*m*m*pow(cos(alpha),4)); 
-	float f = pow(1.0 + dot(v, n), lambda);
-	float g = min ( min(1.0, (2.0* dot(h,n)* dot(v,n))/dot(v,h)), (2.0*dot(h,n)*dot(l,n))/dot(v,h));
-    float kspec = (d*f*g) / (4* dot(v,n) * dot(n,l));
-    return e * lightColor * (kspec* kd + kspec * ks);
-} 

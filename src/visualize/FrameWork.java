@@ -106,11 +106,6 @@ public abstract class FrameWork extends InputAdapter
         m_color.loadFloatData(FLOAT4_BUFFER, GL15.GL_DYNAMIC_DRAW);
     }
     
-    public void setBlur(float blurSize) {
-    	SETTINGS_BUFFER.put(0, blurSize);
-        m_settings.loadFloatData(SETTINGS_BUFFER, GL15.GL_DYNAMIC_DRAW);
-    }
-    
     public int getWidth()
     {
         return m_w;
@@ -149,30 +144,20 @@ public abstract class FrameWork extends InputAdapter
         m_keys = new boolean[Keyboard.getKeyCount()];
         m_mouseBtns = new boolean[Mouse.getButtonCount()];
         
-        //Display.setVSyncEnabled(m_vsync);
-        
         m_camera = new Camera(m_w, m_h);
         m_camera.lookAt(new Vector3f(0,0,-10), new Vector3f(0,0,0)); 
         
         m_cameraBuffer.create();
         
         m_color.create();
-        
-        //m_settings.create();
-        
+       
         setColor(1.0f, 1.0f, 1.0f, 1.0f);
         
         uploadCameraBuffer();
-        
-        //setBlur(10.0f);
-        
+   
         m_color.bindBufferBase();
         
         m_cameraBuffer.bindBufferBase();
-        
-       // m_settings.bindBufferBase();
-        
-//        GLUtil.create();
         
         init();
     }

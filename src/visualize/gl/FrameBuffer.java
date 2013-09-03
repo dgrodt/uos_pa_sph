@@ -6,20 +6,15 @@ import java.nio.IntBuffer;
 import java.util.LinkedList;
 
 import org.lwjgl.BufferUtils;
-import org.lwjgl.opengl.GL11;
-import org.lwjgl.opengl.GL15;
 import org.lwjgl.opengl.GL20;
 import org.lwjgl.opengl.GL30;
 import org.lwjgl.opengl.GL32;
 
 import visualize.FrameWork;
-import visualize.gl.Buffer.VertexBuffer;
-import visualize.gl.GeometryFactory.Geometry;
 
 public class FrameBuffer {
 
-	public static FrameBuffer createFrameBuffer(Program program, String name, boolean depthStencil, Texture... textures) {
-		
+	public static FrameBuffer createFrameBuffer(String name, boolean depthStencil, Texture... textures) {
         if(textures.length == 0) {
         	System.out.printf("No textures for FrameBuffer %s given!", name);
             return null;
@@ -41,7 +36,7 @@ public class FrameBuffer {
                 return null;
             }
         }
-        FrameBuffer buffer = new FrameBuffer(program ,name, depthStencil, copiedTextures);
+        FrameBuffer buffer = new FrameBuffer(name, depthStencil, copiedTextures);
        
         if(!buffer.init()) {
             buffer.delete();
@@ -59,17 +54,7 @@ public class FrameBuffer {
 	protected Texture textures[];
 	protected Program program;
 	
-    private int m_sLocation = -1;
-    private LinkedList<Integer> uniformTexturesIDs = new LinkedList<Integer>();
-    private LinkedList<Integer> uniformTexturesUnits = new LinkedList<Integer>();
-    private final FloatBuffer quadFloatbuffer = BufferUtils.createFloatBuffer(20);
-    private ByteBuffer quadByteBuffer = BufferUtils.createByteBuffer(20 * 4);
-	
-    
-	
-	
-	private FrameBuffer(Program program, String name, boolean depthStencil, Texture[] textures) {
-		this.program = program;
+	private FrameBuffer(String name, boolean depthStencil, Texture[] textures) {
 		this.name = name;
 		this.deptStencil = depthStencil;
 		this.textures = textures;
@@ -97,9 +82,6 @@ public class FrameBuffer {
             this.textures[i].bind();
             GL32.glFramebufferTexture(GL30.GL_FRAMEBUFFER, GL30.GL_COLOR_ATTACHMENT0 + i, this.textures[i].getId(), 0);
             drawBuffers.put(i, GL30.GL_COLOR_ATTACHMENT0 + i);
-            if(this.program != null) {
-            	//addUniformTexture(this.program ,textures[i].getDest().name,textures[i].getUInt());
-            }
             if(!this.checkError()) {
                 System.out.printf("Framebuffer %s texture %d failed.\n", this.name, i);
             }                
@@ -114,6 +96,7 @@ public class FrameBuffer {
 	public int getId(){
 		return this.ID;
 	}
+	
 	public void bind() {
 	    GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, this.ID);
 	}
@@ -123,12 +106,14 @@ public class FrameBuffer {
 	}
 	
     public void renderToBackbuffer() {
-        unbind();    }
+        unbind();    
+    }
 	
     public void renderToFramebuffer(){
     	this.bind();
     	this.clear();
     }
+    
     public boolean checkError() {
         this.bind();
         int error = GL30.glCheckFramebufferStatus(GL30.GL_FRAMEBUFFER);
@@ -172,7 +157,6 @@ public class FrameBuffer {
         if(this.deptStencil) {
             GL30.glClearBufferfi(GL30.GL_DEPTH_STENCIL, 0, 1.0f, 0);
         }
-      //GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT);
     }
     
     public void delete() {
@@ -192,17 +176,6 @@ public class FrameBuffer {
         }
     }
     
-    public void drawTexture(){
-    	drawTexture(textures[0].getUInt());
-    }
-    
-    public void drawTexture(int unit)
-    {
-        for(int i = 0; i < uniformTexturesIDs.size() && i < uniformTexturesUnits.size(); ++i) {
-        	GL20.glUniform1i(uniformTexturesIDs.get(i), uniformTexturesUnits.get(i));
-        }  
-        checkError();
-    }
     
     public void transformFloatToByte(FloatBuffer b0, ByteBuffer b1)
     {
@@ -211,11 +184,5 @@ public class FrameBuffer {
             b1.putFloat(b0.get(i));
         }
         b1.position(0);
-    }
-    
-    public void addUniformTexture(Program program, String variableName, int unit) {
-    	int variableID = program.getUniformLocation(variableName);
-    	uniformTexturesIDs.add(variableID);
-    	uniformTexturesUnits.add(unit);
     }
 }

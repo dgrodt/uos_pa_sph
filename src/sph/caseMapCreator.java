@@ -178,7 +178,6 @@ public class caseMapCreator
     		}
     	}
     	
-    	
     	System.out.print("{");
     	for (int i = 0; i < case_map.length; i++){
     		System.out.print(case_map[i]);

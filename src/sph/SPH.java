@@ -17,8 +17,6 @@ import static pa.cl.OpenCL.clReleaseProgram;
 import static pa.cl.OpenCL.clReleaseKernel;
 import static pa.cl.OpenCL.clSetKernelArg;
 
-import java.awt.event.KeyEvent;
-import java.awt.event.KeyListener;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 
@@ -26,7 +24,6 @@ import org.lwjgl.BufferUtils;
 import org.lwjgl.LWJGLException;
 import org.lwjgl.PointerBuffer;
 import org.lwjgl.input.Keyboard;
-import org.lwjgl.opencl.CL11;
 import org.lwjgl.opencl.CLCommandQueue;
 import org.lwjgl.opencl.CLContext;
 import org.lwjgl.opencl.CLKernel;
@@ -37,22 +34,15 @@ import org.lwjgl.opengl.Display;
 import pa.cl.CLUtil;
 import pa.cl.CLUtil.PlatformDevicePair;
 import pa.cl.OpenCL;
-import pa.util.BufferHelper;
 import pa.util.IOUtil;
-import pa.util.math.MathUtil;
 import sph.helper.Settings;
 
 public class SPH{
-	/*
-	private final int n = 23;
-	private final int gridSize = 30;
-	private final float vol = 1000;
-	private final int[] dataBufferSize = { 128, 128, 128, 32 };
-	private final int N = n * n * n;
-	private float rho = 0.003f;
-	private final float m = 5 / ((float) N * vol);
-    */
 	/*	NICE PARAMETERS */
+	/* kernel-Params:
+	#define BUFFER_SIZE_SIDE 24
+	#define BUFFER_SIZE_DEPTH 64
+	#define OFFSET 1 */	
 	private final int n = 21;
 	private final int gridSize = 40;
 	private final float vol = 1000;
@@ -63,18 +53,10 @@ public class SPH{
 	private float[] inflowPresets = {-0.65f, 0.65f, 0.65f, -0.65f}; //format: x1, z1, x2, z2... with y being constant
 	private float[] drainPresets = {0.35f, -0.35f, -0.35f, 0.35f};
 	private int drainPreset = 0;
-	/*
-	kernel-Params:
-	#define BUFFER_SIZE_SIDE 24
-	#define BUFFER_SIZE_DEPTH 64
-	#define OFFSET 1
-	*/
 
 	private final float c = 1500f;
 	private final float gamma = 7;
 
-	private final boolean surface = true;
-	
 	private static SPH sph = null;
 
 	private Visualizer vis;
@@ -90,9 +72,6 @@ public class SPH{
 	private FloatBuffer float_buffer = BufferUtils.createFloatBuffer(4 * N);
 	private FloatBuffer presetBufferHost = BufferUtils.createFloatBuffer(5);
 	
-	// private IntBuffer int_buffer =
-	// BufferUtils.createIntBuffer(dataBufferSize[0]*dataBufferSize[1]*dataBufferSize[2]*dataBufferSize[3]);
-
 	private CLKernel sph_calcNewV;
 	private CLKernel sph_calcNewPos;
 	private CLKernel sph_calcNewP;
@@ -123,24 +102,26 @@ public class SPH{
 
 	public void init() {
 
-		if (initialized) {
+		if (initialized) 
+		{
 			return;
 		}
 		vis = new Visualizer(this, 1024, 768);
-		try {
+		try 
+		{
 			vis.create();
-		} catch (LWJGLException e) {
+		} 
+		catch (LWJGLException e) 
+		{
 			throw new RuntimeException(e.getMessage());
 		}
 
 		CLUtil.createCL();
 		pair = CLUtil.choosePlatformAndDevice();
-		context = clCreateContext(pair.platform, pair.device, null,
-				Display.getDrawable());
+		context = clCreateContext(pair.platform, pair.device, null, Display.getDrawable());
 		vis.initGL();
 		queue = clCreateCommandQueue(context, pair.device, 0);
-		program = clCreateProgramWithSource(context,
-				IOUtil.readFileContent("kernel/sph.cl"));
+		program = clCreateProgramWithSource(context, IOUtil.readFileContent("kernel/sph.cl"));
 		clBuildProgram(program, pair.device, "", null);
 
 		sph_calcNewV = clCreateKernel(program, "sph_CalcNewV");
@@ -167,8 +148,7 @@ public class SPH{
 		
 		gws_SurfaceCnt.put(0, 15 * gridSize * gridSize * gridSize);
 		
-		gws_CellCnt.put(0, dataBufferSize[0] * dataBufferSize[1]
-				* dataBufferSize[2]);
+		gws_CellCnt.put(0, dataBufferSize[0] * dataBufferSize[1] * dataBufferSize[2]);
 
 		float p[] = new float[N * 4];
 
@@ -176,29 +156,26 @@ public class SPH{
 		for (int i = 0; i < n; i++) {
 			for (int j = 0; j < n; j++) {
 				for (int k = 0; k < n; k++) {
-					p[cnt++] = (0.05f * j - 0.5f);// +
-													// MathUtil.nextFloat(0.01f);
-					p[cnt++] = (0.05f * i - 0.9f);// +
-													// MathUtil.nextFloat(0.01f);
+					p[cnt++] = (0.05f * j - 0.5f);
+					p[cnt++] = (0.05f * i - 0.9f);
 					p[cnt++] = (0.05f * k - 0.5f);
 					p[cnt++] = 0;
 				}
 			}
 		}
 
-		IntBuffer dataStructure = BufferUtils.createIntBuffer(dataBufferSize[0]
-				* dataBufferSize[1] * dataBufferSize[2] * dataBufferSize[3]);
-		clDataStructure = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, dataStructure);
+		IntBuffer dataStructure = BufferUtils.createIntBuffer(dataBufferSize[0] * dataBufferSize[1] * dataBufferSize[2] * dataBufferSize[3]);
 		
+		clDataStructure = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, dataStructure);
 		presetBuffer = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, presetBufferHost);
 		
 		IntBuffer COUNT_buffer = BufferUtils.createIntBuffer(1);
 
 		COUNT = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, COUNT_buffer);
 
-		float normals[] = new float[2 * 3 * 12 * gridSize * gridSize * gridSize];
+		float[] normals =  new float[2 * 3 * 12 * gridSize * gridSize * gridSize];
 		float[] vertices = new float[2 * 3 * 12 * gridSize * gridSize * gridSize];
-		int[] indices = new int[15 * gridSize * gridSize * gridSize];
+		int[] indices =    new int[15 * gridSize * gridSize * gridSize];
 		
 		buffers = vis.createPositions(p ,normals, context, vertices, indices);
 
@@ -212,7 +189,6 @@ public class SPH{
 		buffer = BufferUtils.createFloatBuffer(4 * N);
 		buffer.put(p);
 		buffer.rewind();
-		//body_Pos = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, buffer);
 		
 		IntBuffer int_buffer = BufferUtils.createIntBuffer(gridSize * gridSize * gridSize);
 		surface_grid_rho = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, int_buffer);
@@ -300,7 +276,6 @@ public class SPH{
 	public void run() {
 		init();
 		
-		int cnt = 0;
 		long time;
 		boolean firstRun = true;
 		while (!vis.isDone()) {
@@ -323,20 +298,17 @@ public class SPH{
 					OpenCL.clFinish(queue);
 					System.out.println(System.currentTimeMillis() - time);
 				}
-				
 				time = System.currentTimeMillis();
 				clEnqueueNDRangeKernel(queue, sph_calcNewP, 1, null, gws_BodyCnt, null, null, null);
 				if(Settings.PROFILING) {
 					OpenCL.clFinish(queue);
 					System.out.println(System.currentTimeMillis() - time);
 				}
-				
 				clEnqueueNDRangeKernel(queue, sph_calcNewV, 1, null, gws_BodyCnt, null, null, null);
 				if(Settings.PROFILING) {
 					OpenCL.clFinish(queue);
 					System.out.println(System.currentTimeMillis() - time);
 				}
-
 				time = System.currentTimeMillis();
 				clEnqueueNDRangeKernel(queue, sph_resetData, 1, null, gws_CellCnt, null, null, null);
 				if(Settings.PROFILING) {
@@ -423,8 +395,6 @@ public class SPH{
 
 	public static void destroy() {
 		if (sph != null) {
-			// System.out.println("destryoing");
-			// Display.destroy();
 			sph.requestClose();
 		}
 		sph = null;

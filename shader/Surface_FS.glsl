@@ -21,12 +21,6 @@ void main()
 	vec3 normal = fs_in_normal.xyz;
     vec4 worldView = vec4(fs_in_world,1);
     
-//    vec3 color = vec3(0.2);
-//    for(int i=0; i < LIGHT_COUNT; ++i)
-//    {
-//        color += enlight(worldView, g_LightsPos[i], g_LightsColor[i],vec3(1), vec3(1), g_LightsM[i], normal);
-//    }
-    
     fs_out_color = g_color;
     fs_out_depth = 1-normalize(fs_in_ViewPos).z;
     fs_out_world = fs_in_world;
@@ -34,9 +28,4 @@ void main()
     vec2 diff_spec = getLight(worldView, g_lightPos,  normal);
     fs_out_specular =  diff_spec.y;
     fs_out_diffuse  =  diff_spec.x;
-    
-    vec3 u = g_eye.xyz - fs_in_world;
-    vec3 v = refract(normalize(u), normal, 1.5f);
-    
-	fs_out_freshnel = refractedVector;
 }

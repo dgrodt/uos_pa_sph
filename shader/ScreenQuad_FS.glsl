@@ -11,6 +11,8 @@ uniform sampler2D freshel;
 uniform sampler2D thickness;
 uniform sampler2D background;
 
+uniform int colorMode;
+
 in vec2 fs_in_tc;
 in vec4 fs_in_ViewPos;
 out vec4 fs_out_color;
@@ -64,12 +66,22 @@ void main()
     }
 */
 	fs_out_color = texture(background, fragCoords);	    
-    fs_out_color +=  ((texture(color,fragCoords) + (vec4(0.8) * blur_spec.r))*blur_thickness)+vec4(0.1)*texture(diffuse,fragCoords).r;
-    //fs_out_color.w = blur_thickness.w;
-    //fs_out_color.xy = freshnelCoords;
-    //fs_out_color = sum;
-    //fs_out_color += vec4(1) * texture(specular, fragCoords).x;
-    //fs_out_color = (cofs.x * vec4(0.1) + cofs.y * texture(color, fragCoords) + vec4(1) * g_ambient) ;//* sum;
-
-
+   
+	if(colorMode == 0) {
+    	fs_out_color += ((texture(color,fragCoords) + (vec4(0.8) * blur_spec.r))*blur_thickness)+vec4(0.2)*texture(diffuse,fragCoords).r;
+    } else if(colorMode == 1) {
+    	fs_out_color += texture(color,fragCoords);
+    } else if(colorMode == 2) {
+    	fs_out_color += texture(thickness,fragCoords);
+    } else if(colorMode == 3) {
+    	fs_out_color += vec4(1)*texture(specular,fragCoords).r;
+    } else if(colorMode == 4) {
+    	fs_out_color += vec4(1)*texture(diffuse,fragCoords).r;
+    } else if(colorMode == 5) {
+    	fs_out_color += texture(normal,fragCoords);
+    } else if(colorMode == 6) {
+    	fs_out_color += texture(depth,fragCoords);
+    } else if(colorMode == 7) {
+    	fs_out_color += texture(world,fragCoords);
+    }
 }
