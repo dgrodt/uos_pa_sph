@@ -123,6 +123,7 @@ public class Visualizer extends FrameWork
     protected IntBuffer imageBuffer;
     protected int[] imageBufferArray;
     protected long frameCount = 0;
+    protected int colorMaskMode = 0;
     
     private boolean m_pause = false;
     
@@ -210,6 +211,7 @@ public class Visualizer extends FrameWork
         dynamicScreenSquad = GeometryFactory.createDynamicScreenQuad();
         
         frameBufferProgram.use();
+        setColorMask(colorMaskMode);
         GL20.glUniform1i(frameBufferProgram.getUniformLocation(frameTexture.getDest().name), frameTexture.getUInt());
         GL20.glUniform1i(frameBufferProgram.getUniformLocation(depthTexture.getDest().name), depthTexture.getUInt());
         GL20.glUniform1i(frameBufferProgram.getUniformLocation(worldTexture.getDest().name), worldTexture.getUInt());
@@ -562,17 +564,11 @@ public class Visualizer extends FrameWork
         }
         if(key == Keyboard.KEY_NUMPAD1)
         {
-            float blur = SETTINGS_BUFFER.get(0);
-            blur -= 0.5f;
-            setBlur(Math.max(Math.min(blur, 20.0f), 0));
-            System.out.println("set blur size to: "+ Math.max(Math.min(blur, 20.0f), 0));
+        	setColorMask(colorMaskMode - 1);
         }
         if(key == Keyboard.KEY_NUMPAD3)
         {
-            float blur = SETTINGS_BUFFER.get(0);
-            blur += 0.5f;
-            setBlur(Math.max(Math.min(blur, 20.0f), 0));
-            System.out.println("set blur size to: "+ Math.max(Math.min(blur, 20.0f), 0));
+        	setColorMask(colorMaskMode + 1);
         }
         sph.processKeyPressed(key);
     }
@@ -584,7 +580,7 @@ public class Visualizer extends FrameWork
     public void setPause(boolean pause) {
     	m_pause = pause;
     }
-    void flipImage(BufferedImage image) {
+    protected void flipImage(BufferedImage image) {
         WritableRaster raster = image.getRaster();
         int h = raster.getHeight();
         int w = raster.getWidth();
@@ -602,4 +598,10 @@ public class Visualizer extends FrameWork
         }
         return;
    }
+  protected void setColorMask(int mode) {
+	  mode = Math.max(0, Math.min(7, mode));
+	  colorMaskMode = mode;
+	  int address = frameBufferProgram.getUniformLocation("colorMode");
+	  GL20.glUniform1i(address, colorMaskMode);
+  }
 }
