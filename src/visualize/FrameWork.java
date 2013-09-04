@@ -45,7 +45,6 @@ public abstract class FrameWork extends InputAdapter
     protected Camera m_camera;
     protected UniformBuffer m_cameraBuffer = new UniformBuffer(UniformBufferSlots.CAMERA_BUFFER_SLOT);
     protected UniformBuffer m_color = new UniformBuffer(UniformBufferSlots.COLOR_BUFFER_SLOT);
-    protected UniformBuffer m_settings = new UniformBuffer(UniformBufferSlots.SETTINGS_BUFFER_SLOT);
     protected InputHandler m_inputHandler;
     protected boolean m_done = false;
     protected boolean m_vsync;
@@ -62,7 +61,6 @@ public abstract class FrameWork extends InputAdapter
     private static final FloatBuffer CAMERA_BUFFER = BufferUtils.createFloatBuffer(32 + 4);
     protected static final FloatBuffer MATRIX4X4_BUFFER = BufferUtils.createFloatBuffer(16);
     protected static final FloatBuffer FLOAT4_BUFFER = BufferUtils.createFloatBuffer(4);
-    protected static final FloatBuffer SETTINGS_BUFFER = BufferUtils.createFloatBuffer(1);
     
     private static final int REQU_GL_MAJOR = 3;
     private static final int REQU_GL_MINOR = 1;
@@ -237,7 +235,6 @@ public abstract class FrameWork extends InputAdapter
     {
         m_cameraBuffer.delete();
         m_color.delete();
-        m_settings.delete();
         
         GLUtil.destroy();
         Mouse.destroy();
