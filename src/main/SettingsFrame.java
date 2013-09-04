@@ -47,8 +47,6 @@ public class SettingsFrame extends JFrame implements WindowListener {
 				new BoxLayout(getContentPane(), BoxLayout.PAGE_AXIS));
 		settingsData[0][1] = new Float(SPH.getInstance().get_m());
 		settingsData[1][1] = new Float(SPH.getInstance().get_rho());
-		settingsData[2][1] = new Float(SPH.getInstance().get_c());
-		settingsData[3][1] = new Float(SPH.getInstance().get_gamma());
 		// m_settingsField = new JTextField(sph.get_m()+"");
 		// rho_settingsField = new JTextField(sph.get_rho()+"");
 		// c_settingsField = new JTextField(sph.get_c()+"");
@@ -127,7 +125,6 @@ public class SettingsFrame extends JFrame implements WindowListener {
 				SPH.getInstance().set_m((Float)settingsData[0][1]);
 				SPH.getInstance().set_rho((Float)settingsData[1][1]);
 				SPH.getInstance().set_c((Float)settingsData[2][1]);
-				SPH.getInstance().set_gamma((Float)settingsData[3][1]);
 				System.out.println("------------------");
 				SPH.getInstance().setPause(false);
 				setButton.setText("Save");

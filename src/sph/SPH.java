@@ -38,27 +38,29 @@ import pa.util.IOUtil;
 import sph.helper.Settings;
 
 public class SPH{
-	/*	NICE PARAMETERS */
-	/* kernel-Params:
-	#define BUFFER_SIZE_SIDE 24
-	#define BUFFER_SIZE_DEPTH 64
-	#define OFFSET 1 */	
-	private final int n = 21;
+
+	//-----------------------------------------
+	//		PARAMETERS
+	//-----------------------------------------
+	
+	private final int n = 21;	
 	private final int gridSize = 40;
-	private final float vol = 1000;
-	private final int[] dataBufferSize = { 32, 32, 32, 64 };
-	private final int N = n * n * n;
+	private final int BUFFER_SIZE_SIDE = 10;
+	private final int BUFFER_SIZE_DEPTH = 128;
+	private final int OFFSET = 1;
 	private float rho = 0.0035f;
-	private final float m = 5 / ((float) N * vol);
 	private float[] inflowPresets = {-0.65f, 0.65f, 0.65f, -0.65f}; //format: x1, z1, x2, z2... with y being constant
 	private float[] drainPresets = {0.35f, -0.35f, -0.35f, 0.35f};
 	private int drainPreset = 0;
 
-	private final float c = 1500f;
-	private final float gamma = 7;
-
+	private final float h = 2 / (float)BUFFER_SIZE_SIDE;
+	private final int N = n * n * n;
+	private final float m = 1 / ((float) N * 200);
+	
+	//-----------------------------------------
+	//-----------------------------------------
+	
 	private static SPH sph = null;
-
 	private Visualizer vis;
 	private PlatformDevicePair pair;
 	private CLProgram program;
@@ -148,7 +150,7 @@ public class SPH{
 		
 		gws_SurfaceCnt.put(0, 15 * gridSize * gridSize * gridSize);
 		
-		gws_CellCnt.put(0, dataBufferSize[0] * dataBufferSize[1] * dataBufferSize[2]);
+		gws_CellCnt.put(0, BUFFER_SIZE_SIDE * BUFFER_SIZE_SIDE * BUFFER_SIZE_SIDE);
 
 		float p[] = new float[N * 4];
 
@@ -164,7 +166,7 @@ public class SPH{
 			}
 		}
 
-		IntBuffer dataStructure = BufferUtils.createIntBuffer(dataBufferSize[0] * dataBufferSize[1] * dataBufferSize[2] * dataBufferSize[3]);
+		IntBuffer dataStructure = BufferUtils.createIntBuffer(BUFFER_SIZE_DEPTH * BUFFER_SIZE_SIDE * BUFFER_SIZE_SIDE * BUFFER_SIZE_SIDE);
 		
 		clDataStructure = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, dataStructure);
 		presetBuffer = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, presetBufferHost);
@@ -219,11 +221,16 @@ public class SPH{
 				| CL_MEM_COPY_HOST_PTR, buffer);
  
 		clSetKernelArg(sph_resetData, 0, clDataStructure);
+		clSetKernelArg(sph_resetData, 1, BUFFER_SIZE_DEPTH);
 
 		clSetKernelArg(sph_calcNewRho, 0, body_Pos);
 		clSetKernelArg(sph_calcNewRho, 1, body_rho);
 		clSetKernelArg(sph_calcNewRho, 2, m);
 		clSetKernelArg(sph_calcNewRho, 3, clDataStructure);
+		clSetKernelArg(sph_calcNewRho, 4, h);
+		clSetKernelArg(sph_calcNewRho, 5, BUFFER_SIZE_SIDE);
+		clSetKernelArg(sph_calcNewRho, 6, BUFFER_SIZE_DEPTH);
+		clSetKernelArg(sph_calcNewRho, 7, OFFSET);
 
 		clSetKernelArg(sph_resetSurfaceRho, 0, surface_grid_rho);
 		clSetKernelArg(sph_resetSurfaceRho, 1, COUNT);
@@ -260,12 +267,18 @@ public class SPH{
 		clSetKernelArg(sph_calcNewV, 4, body_rho);
 		clSetKernelArg(sph_calcNewV, 5, m);
 		clSetKernelArg(sph_calcNewV, 6, clDataStructure);
+		clSetKernelArg(sph_calcNewV, 7, h);
+		clSetKernelArg(sph_calcNewV, 8, BUFFER_SIZE_SIDE);
+		clSetKernelArg(sph_calcNewV, 9, BUFFER_SIZE_DEPTH);
+		clSetKernelArg(sph_calcNewV, 10, OFFSET);
 
 		clSetKernelArg(sph_calcNewPos, 0, body_Pos);
 		clSetKernelArg(sph_calcNewPos, 1, body_V);
 		clSetKernelArg(sph_calcNewPos, 2, vis.getCurrentParams().m_timeStep);
 		clSetKernelArg(sph_calcNewPos, 3, clDataStructure);
 		clSetKernelArg(sph_calcNewPos, 4, presetBuffer);
+		clSetKernelArg(sph_calcNewPos, 5, BUFFER_SIZE_SIDE);
+		clSetKernelArg(sph_calcNewPos, 6, BUFFER_SIZE_DEPTH);
 		
 		setDrainPreset(0, 0);
 		
@@ -419,17 +432,6 @@ public class SPH{
 	}
 
 	public void set_c(float c) {
-	}
-
-	public float get_c() {
-		return c;
-	}
-
-	public void set_gamma(float gamma) {
-	}
-
-	public float get_gamma() {
-		return gamma;
 	}
 
 	public void setPause(boolean pause) {

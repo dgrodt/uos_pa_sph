@@ -1,9 +1,3 @@
-//#define BUFFER_SIZE_SIDE 128
-//#define BUFFER_SIZE_DEPTH 32
-//#define OFFSET 4
-#define BUFFER_SIZE_SIDE 32
-#define BUFFER_SIZE_DEPTH 64
-#define OFFSET 3
 
 float W (float4* r, float h) {
 	float x = fast_length(*r);
@@ -35,7 +29,10 @@ global float* body_rho,
 global uint* data,
 const float m,
 const float DELTA_T,
-const float h
+const float h,
+const int BUFFER_SIZE_SIDE,
+const int BUFFER_SIZE_DEPTH,
+const int OFFSET
 )
 {
 
@@ -80,13 +77,16 @@ kernel void sph_CalcNewRho(
 global float4* body_Pos,
 global float* body_rho,
 const float m,
-global uint* data
+global uint* data,
+const float h,
+const int BUFFER_SIZE_SIDE,
+const int BUFFER_SIZE_DEPTH,
+const int OFFSET
 )
 {
 	uint id = get_global_id(0);
 	uint N = get_global_size(0);
 	float rhoByM = 0;
-	float h = 0.2;
 	
 	float4 pos = body_Pos[id];
 	int4 gridPos = convert_int4((BUFFER_SIZE_SIDE - 1) * (body_Pos[id] + (float4)1) / 2);
@@ -131,51 +131,6 @@ const float rho
 	body_P[id] = (( (b_roh/rho)*(b_roh/rho)*(b_roh/rho)*(b_roh/rho)*(b_roh/rho)*(b_roh/rho)*(b_roh/rho)*(b_roh/rho) ) -1) /300;
 }
 
-/*
-kernel void sph_CalcNewN(
-global float4* body_Pos,
-global float* body_rho,
-global float4* n,
-global uint* data
-)
-{
-	uint id = get_global_id(0);
-	uint N = get_global_size(0);
-	float4 new_n = (float4)0;
-	float4 pos = body_Pos[id];
-	float h = 0.2;
-	
-	int4 gridPos = convert_int4((BUFFER_SIZE_SIDE - 1) * (body_Pos[id] + (float4)1) / 2);
-
-	for (int l = max(gridPos.x - OFFSET+1, 0); l <= min(gridPos.x + OFFSET+1, BUFFER_SIZE_SIDE - 1) ; l++) 
-	{
-		for (int j = max(gridPos.y - OFFSET+1, 0); j <= min(gridPos.y + OFFSET+1, BUFFER_SIZE_SIDE - 1) ; j++) 
-		{
-			for (int k = max(gridPos.z - OFFSET+1, 0); k <= min(gridPos.z + OFFSET+1, BUFFER_SIZE_SIDE - 1) ; k++) 
-			{
-	 			int cnt_ind = BUFFER_SIZE_DEPTH * (l + BUFFER_SIZE_SIDE * j + BUFFER_SIZE_SIDE * BUFFER_SIZE_SIDE * k);
-				uint cnt = data[cnt_ind];
-				for (int o = 1; o <= cnt; o++) 
-				{
-					int i = data[cnt_ind + o];	
-					if (i!=id)
-					{	
-						float4 w = pos-body_Pos[i];
-						new_n += gradW(&w, h) / (body_rho[i] * 300000);
-					}
-				}
-			}
-		}
-	}
-	//if (fast_length(new_n) > 10) {
-		n[id] = new_n / fast_length(new_n);
-		n[id].w = fast_length(new_n);
-	//}
-	//else {
-		//n[id] = (float4)0;
-	//}
-}
-*/
 
 kernel void sph_CalcNewV(
 global float4* body_Pos,
@@ -184,14 +139,16 @@ const float DELTA_T,
 global float* body_P,
 global float* body_rho,
 const float m,
-global uint* data
+global uint* data,
+const float h,
+const int BUFFER_SIZE_SIDE,
+const int BUFFER_SIZE_DEPTH,
+const int OFFSET
 )
 {	
 	uint id = get_global_id(0);
 	uint N = get_global_size(0);
 	
-	float h = 0.2;
-
 	//float nu = 0.000001;
 	float nu = 0.0000005;
 
@@ -264,7 +221,8 @@ global uint* data
 }
 
 kernel void sph_resetData(
-global uint* data
+global uint* data,
+const int BUFFER_SIZE_DEPTH
 )
 {
 	uint id = get_global_id(0);
@@ -278,7 +236,9 @@ global float4* body_Pos,
 global float4* body_V,
 const float DELTA_T,
 global uint* data,
-global float* presets
+global float* presets,
+const int BUFFER_SIZE_SIDE,
+const int BUFFER_SIZE_DEPTH
 )
 {
     uint id = get_global_id(0);
