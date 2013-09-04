@@ -123,12 +123,13 @@ const int OFFSET
 kernel void sph_CalcNewP(
 global float* body_P,
 global float* body_rho,
-const float rho
+const float rho,
+const float press_koeff
 )
 {
 	uint id = get_global_id(0);
 	float b_roh = body_rho[id];
-	body_P[id] = (( (b_roh/rho)*(b_roh/rho)*(b_roh/rho)*(b_roh/rho)*(b_roh/rho)*(b_roh/rho)*(b_roh/rho)*(b_roh/rho) ) -1) /300;
+	body_P[id] = press_koeff * (pown(b_roh/rho, 7) -1);
 }
 
 
@@ -143,16 +144,13 @@ global uint* data,
 const float h,
 const int BUFFER_SIZE_SIDE,
 const int BUFFER_SIZE_DEPTH,
-const int OFFSET
+const int OFFSET,
+const float nu
 )
 {	
 	uint id = get_global_id(0);
 	uint N = get_global_size(0);
-	
-	//float nu = 0.000001;
-	float nu = 0.0000005;
 
-	float tau = 0;
 	float4 g = (float4)(0,-10000,0,0);
 	float4 a_P = (float4)0;
 	float4 a_V = (float4)0;

@@ -43,12 +43,17 @@ public class SPH{
 	//		PARAMETERS
 	//-----------------------------------------
 	
-	private final int n = 21;	
+	private final int n = 25;
+	private final float dist = 0.05f;
 	private final int gridSize = 40;
-	private final int BUFFER_SIZE_SIDE = 10;
+	private final int BUFFER_SIZE_SIDE = 15;
 	private final int BUFFER_SIZE_DEPTH = 128;
 	private final int OFFSET = 1;
-	private float rho = 0.0035f;
+	private float rho = 0.002f;
+	private float press_koeff = 1/300f;
+	private float visc_koeff = 0.0000005f; //0.000001;
+	
+	
 	private float[] inflowPresets = {-0.65f, 0.65f, 0.65f, -0.65f}; //format: x1, z1, x2, z2... with y being constant
 	private float[] drainPresets = {0.35f, -0.35f, -0.35f, 0.35f};
 	private int drainPreset = 0;
@@ -158,9 +163,9 @@ public class SPH{
 		for (int i = 0; i < n; i++) {
 			for (int j = 0; j < n; j++) {
 				for (int k = 0; k < n; k++) {
-					p[cnt++] = (0.05f * j - 0.5f);
-					p[cnt++] = (0.05f * i - 0.9f);
-					p[cnt++] = (0.05f * k - 0.5f);
+					p[cnt++] = (dist * j - 0.5f);
+					p[cnt++] = (dist * i - 0.9f);
+					p[cnt++] = (dist * k - 0.5f);
 					p[cnt++] = 0;
 				}
 			}
@@ -260,6 +265,7 @@ public class SPH{
 		clSetKernelArg(sph_calcNewP, 0, body_P);
 		clSetKernelArg(sph_calcNewP, 1, body_rho);
 		clSetKernelArg(sph_calcNewP, 2, rho);
+		clSetKernelArg(sph_calcNewP, 3, press_koeff);
 
 		clSetKernelArg(sph_calcNewV, 0, body_Pos);
 		clSetKernelArg(sph_calcNewV, 1, body_V);
@@ -271,6 +277,7 @@ public class SPH{
 		clSetKernelArg(sph_calcNewV, 8, BUFFER_SIZE_SIDE);
 		clSetKernelArg(sph_calcNewV, 9, BUFFER_SIZE_DEPTH);
 		clSetKernelArg(sph_calcNewV, 10, OFFSET);
+		clSetKernelArg(sph_calcNewV, 11, visc_koeff);
 
 		clSetKernelArg(sph_calcNewPos, 0, body_Pos);
 		clSetKernelArg(sph_calcNewPos, 1, body_V);
