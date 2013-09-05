@@ -38,27 +38,30 @@ import pa.util.IOUtil;
 import sph.helper.Settings;
 
 public class SPH{
-
+	
 	//-----------------------------------------
 	//		PARAMETERS
 	//-----------------------------------------
 	
-	private final int n = 25;
-	private final float dist = 0.05f;
-	private final int gridSize = 40;
-	private final int BUFFER_SIZE_SIDE = 15;
-	private final int BUFFER_SIZE_DEPTH = 128;
-	private final int OFFSET = 1;
-	private float rho = 0.002f;
-	private float press_koeff = 1/300f;
-	private float visc_koeff = 0.0000005f; //0.000001;
-	
+	private final int n = 35; // 25
+	private final float dist = 0.03f; // 0.05f
+	private final int gridSize = 70; // 40
+	private final int BUFFER_SIZE_SIDE = 28; //15
+	private final int BUFFER_SIZE_DEPTH = 128; //128
+	private final int OFFSET = 1; // 1
+	private float rho = 0.0004f; // 0.002f
+	private float press_koeff = 1/30f; // 1/300f
+	private float visc_koeff = 0.000000005f; //0.0000005f;
+	private final float h_surface = 0.05f; // 0.15f
+	private final float r_surface = 0.025f; // 0.0125f
+	private final float DELTA_T = 0.00001f; // 0.0002f
+	private final boolean alternative_rho_calculation = true; //false
 	
 	private float[] inflowPresets = {-0.65f, 0.65f, 0.65f, -0.65f}; //format: x1, z1, x2, z2... with y being constant
 	private float[] drainPresets = {0.35f, -0.35f, -0.35f, 0.35f};
 	private int drainPreset = 0;
 
-	private final float h = 2 / (float)BUFFER_SIZE_SIDE;
+	private final float h = 1.5f / (float)BUFFER_SIZE_SIDE;
 	private final int N = n * n * n;
 	private final float m = 1 / ((float) N * 200);
 	
@@ -83,6 +86,7 @@ public class SPH{
 	private CLKernel sph_calcNewPos;
 	private CLKernel sph_calcNewP;
 	private CLKernel sph_calcNewRho;
+	private CLKernel sph_calcNewRho_;
 	private CLKernel sph_resetData;
 	private CLKernel sph_calcNewSurface;
 	private CLKernel sph_calcNewSurface2;
@@ -135,6 +139,7 @@ public class SPH{
 		sph_calcNewPos = clCreateKernel(program, "sph_CalcNewPos");
 		sph_calcNewP = clCreateKernel(program, "sph_CalcNewP");
 		sph_calcNewRho = clCreateKernel(program, "sph_CalcNewRho");
+		sph_calcNewRho_ = clCreateKernel(program, "sph_CalcNewRho_");
 		sph_resetData = clCreateKernel(program, "sph_resetData");
 		sph_calcNewSurface = clCreateKernel(program, "sph_CalcNewSurface");
 		sph_calcNewSurface2 = clCreateKernel(program, "sph_CalcNewSurface2");
@@ -237,6 +242,18 @@ public class SPH{
 		clSetKernelArg(sph_calcNewRho, 6, BUFFER_SIZE_DEPTH);
 		clSetKernelArg(sph_calcNewRho, 7, OFFSET);
 
+		clSetKernelArg(sph_calcNewRho_, 0, body_V);
+		clSetKernelArg(sph_calcNewRho_, 1, body_Pos);
+		clSetKernelArg(sph_calcNewRho_, 2, body_rho);
+		clSetKernelArg(sph_calcNewRho_, 3, clDataStructure);
+		clSetKernelArg(sph_calcNewRho_, 4, m);
+		clSetKernelArg(sph_calcNewRho_, 5, DELTA_T);
+		clSetKernelArg(sph_calcNewRho_, 6, h);
+		clSetKernelArg(sph_calcNewRho_, 7, BUFFER_SIZE_SIDE);
+		clSetKernelArg(sph_calcNewRho_, 8, BUFFER_SIZE_DEPTH);
+		clSetKernelArg(sph_calcNewRho_, 9, OFFSET);
+		
+		
 		clSetKernelArg(sph_resetSurfaceRho, 0, surface_grid_rho);
 		clSetKernelArg(sph_resetSurfaceRho, 1, COUNT);
 		
@@ -249,6 +266,7 @@ public class SPH{
 		clSetKernelArg(sph_calcNewSurface, 4, m);
 		clSetKernelArg(sph_calcNewSurface, 5, gridSize);
 		clSetKernelArg(sph_calcNewSurface, 6, clDataStructure);
+		clSetKernelArg(sph_calcNewSurface, 7, h_surface);
 		
 		clSetKernelArg(sph_calcNewSurfaceNormal, 0, surface_grid_rho);
 		clSetKernelArg(sph_calcNewSurfaceNormal, 1, grid_normals);
@@ -261,6 +279,8 @@ public class SPH{
 		clSetKernelArg(sph_calcNewSurface2, 4, surface_grid_rho);
 		clSetKernelArg(sph_calcNewSurface2, 5, COUNT);
 		clSetKernelArg(sph_calcNewSurface2, 6, m);
+		clSetKernelArg(sph_calcNewSurface2, 7, h_surface);
+		clSetKernelArg(sph_calcNewSurface2, 8, r_surface);
 		
 		clSetKernelArg(sph_calcNewP, 0, body_P);
 		clSetKernelArg(sph_calcNewP, 1, body_rho);
@@ -269,6 +289,7 @@ public class SPH{
 
 		clSetKernelArg(sph_calcNewV, 0, body_Pos);
 		clSetKernelArg(sph_calcNewV, 1, body_V);
+		clSetKernelArg(sph_calcNewV, 2, DELTA_T);
 		clSetKernelArg(sph_calcNewV, 3, body_P);
 		clSetKernelArg(sph_calcNewV, 4, body_rho);
 		clSetKernelArg(sph_calcNewV, 5, m);
@@ -281,7 +302,7 @@ public class SPH{
 
 		clSetKernelArg(sph_calcNewPos, 0, body_Pos);
 		clSetKernelArg(sph_calcNewPos, 1, body_V);
-		clSetKernelArg(sph_calcNewPos, 2, vis.getCurrentParams().m_timeStep);
+		clSetKernelArg(sph_calcNewPos, 2, DELTA_T);
 		clSetKernelArg(sph_calcNewPos, 3, clDataStructure);
 		clSetKernelArg(sph_calcNewPos, 4, presetBuffer);
 		clSetKernelArg(sph_calcNewPos, 5, BUFFER_SIZE_SIDE);
@@ -304,7 +325,15 @@ public class SPH{
 				if(Settings.PROFILING) {
 					time = System.currentTimeMillis();
 				}
-				clEnqueueNDRangeKernel(queue, sph_calcNewRho, 1, null, gws_BodyCnt, null, null, null);
+				
+				if (alternative_rho_calculation) 
+				{
+					clEnqueueNDRangeKernel(queue, sph_calcNewRho_, 1, null, gws_BodyCnt, null, null, null);
+				}
+				else
+				{
+					clEnqueueNDRangeKernel(queue, sph_calcNewRho, 1, null, gws_BodyCnt, null, null, null);
+				}
 				
 				if(Settings.PROFILING) {
 					time = System.currentTimeMillis();
@@ -318,6 +347,7 @@ public class SPH{
 					OpenCL.clFinish(queue);
 					System.out.println(System.currentTimeMillis() - time);
 				}
+				
 				time = System.currentTimeMillis();
 				clEnqueueNDRangeKernel(queue, sph_calcNewP, 1, null, gws_BodyCnt, null, null, null);
 				if(Settings.PROFILING) {

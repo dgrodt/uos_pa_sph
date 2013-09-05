@@ -360,7 +360,7 @@ public class Visualizer extends FrameWork
     {
         m_kernel = kernel;
         m_queue = queue;
-        clSetKernelArg(m_kernel, 2, m_currentParams.m_timeStep);
+        //clSetKernelArg(m_kernel, 2, m_currentParams.m_timeStep);
     }
     
     public CLMem[] createPositions(float[] pos,float[] normal, CLContext context, float[] vertices, int[] indices) {
