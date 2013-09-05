@@ -22,6 +22,8 @@ float4 gradWV (float4* r, float h) {
 
 
 
+
+
 kernel void sph_CalcNewRho_(
 global float4* body_V,
 global float4* body_Pos,
@@ -295,13 +297,13 @@ global float* body_rho,
 global int* surface_grid_rho,
 const float m,
 const int gridSize,
-global uint* data
+global uint* data,
+const float h
 )
 {
 	uint id = get_global_id(0);
 	
 	float grid_rho = 0;
-	float h = 0.15;
 	float4 pos = body_Pos[id];
 	int offset = (int)(h * (gridSize - 1));
 	
@@ -703,12 +705,13 @@ global int* surface_Ind,
 const int gridSize,
 global int* surface_grid_rho,
 global int* COUNT,
-const float m
+const float m,
+const float h,
+const float r
 )
 {
-	float4 tw = (float4)(0.0125,0,0,0);
-	int t = (int)(W(&tw, 0.15) * m * 10000000000);
-	//int t = (int)(W(&tw) * m * 10000000000);
+	float4 tw = (float4)(r,0,0,0);
+	int t = (int)(W(&tw, h) * m * 10000000000);
 	int Cnt;
 	
 	int id_x = get_global_id(0);
@@ -827,7 +830,6 @@ const float m
 				a++;
 			}
 		}
-
 	}
 }
 
