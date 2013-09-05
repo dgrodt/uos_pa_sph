@@ -119,7 +119,7 @@ public class Visualizer extends FrameWork
     
     public Visualizer(SPH sph, int w, int h) 
     {
-        super(w, h, true, true, "", false, false);
+        super(w, h, true, true, "", false, true);
         this.sph = sph;
     }
     
@@ -454,7 +454,11 @@ public class Visualizer extends FrameWork
         GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT);        
         //Draw Surface
         m_surfaceProgram.use();
-        setColor(0.1f, 0.15f, 0.3f, 0.8f);
+        if(colorMaskMode == 8) {
+            setColor((255f-51f/2f)/255f, (255f-26f/2f)/255f,(255f-0f)/255f, 0.8f);
+        } else {
+        	setColor(0.1f, 0.15f, 0.3f, 0.8f);
+        }
         m_buffer[2].draw();
 
         //Swap back to Backbuffer 
@@ -557,7 +561,7 @@ public class Visualizer extends FrameWork
         return;
    }
   protected void setColorMask(int mode) {
-	  mode = Math.max(0, Math.min(7, mode));
+	  mode = Math.max(0, Math.min(8, mode));
 	  colorMaskMode = mode;
 	  int address = frameBufferProgram.getUniformLocation("colorMode");
 	  GL20.glUniform1i(address, colorMaskMode);

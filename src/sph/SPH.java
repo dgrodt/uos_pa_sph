@@ -43,25 +43,26 @@ public class SPH{
 	//		PARAMETERS
 	//-----------------------------------------
 	
-	private final int n = 35; // 25
-	private final float dist = 0.03f; // 0.05f
-	private final int gridSize = 70; // 40
-	private final int BUFFER_SIZE_SIDE = 28; //15
+	private final int n = 30; // 25
+	private final float dist = 0.05f; // 0.05f
+	private final int gridSize = 70; // 70
+	private final int BUFFER_SIZE_SIDE = 30; //30
 	private final int BUFFER_SIZE_DEPTH = 128; //128
-	private final int OFFSET = 1; // 1
-	private float rho = 0.0004f; // 0.002f
-	private float press_koeff = 1/30f; // 1/300f
-	private float visc_koeff = 0.000000005f; //0.0000005f;
-	private final float h_surface = 0.05f; // 0.15f
-	private final float r_surface = 0.025f; // 0.0125f
-	private final float DELTA_T = 0.00001f; // 0.0002f
-	private final boolean alternative_rho_calculation = true; //false
+	private final int OFFSET = 2; // 2
+	private float rho = 0.0012f; //0.0012f 
+	private float press_koeff = 1/300f; // 1/300f
+	private float visc_koeff = 0.0000005f; //0.0000005f;
+	private final float h_surface = 0.08f; // 0.08f
+	private final float r_surface = 0.04f; // 0.04f
+	private final float DELTA_T = 0.00016f ;//0.00016f; 
+	private final boolean alternative_rho_calculation = false; //false
 	
 	private float[] inflowPresets = {-0.65f, 0.65f, 0.65f, -0.65f}; //format: x1, z1, x2, z2... with y being constant
 	private float[] drainPresets = {0.35f, -0.35f, -0.35f, 0.35f};
 	private int drainPreset = 0;
 
-	private final float h = 1.5f / (float)BUFFER_SIZE_SIDE;
+	private final float h = 0.2f;
+	//private final float h = 1.5f / (float)BUFFER_SIZE_SIDE;
 	private final int N = n * n * n;
 	private final float m = 1 / ((float) N * 200);
 	

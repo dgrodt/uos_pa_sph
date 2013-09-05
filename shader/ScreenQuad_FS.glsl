@@ -83,5 +83,7 @@ void main()
     	fs_out_color += texture(depth,fragCoords);
     } else if(colorMode == 7) {
     	fs_out_color += texture(world,fragCoords);
+    } else if(colorMode == 8) {
+    	fs_out_color += ((-texture(color,fragCoords) + (vec4(0.9) * blur_spec.r))*0.9*blur_thickness)+vec4(0.5)*texture(diffuse,fragCoords).r;
     }
 }
