@@ -1,0 +1,69 @@
+\documentclass[a4paper,12pt,oneside]{amsbook}
+
+\linespread{1.05}
+
+\usepackage{amssymb}
+
+\usepackage{amsfonts}
+
+% Deutsche Sprache verwenden
+\usepackage{german}
+
+% Umlaute normal eingeben
+\usepackage[utf8]{inputenc}
+
+\usepackage{graphicx}
+
+% oben Ueberschriften
+\pagestyle{headings}
+
+\textwidth=15 cm
+\textheight=22 cm
+\topmargin=1.2 cm
+\oddsidemargin=0.5 cm
+\evensidemargin=0.5 cm
+\footskip=40 pt
+\parskip5pt
+
+
+\begin{document}
+
+
+\begin{titlepage}
+\begin{center}
+{\large Universität Osnabrück}
+
+
+\vspace{9em}
+{\LARGE \emph{Smoothed Particle Hydrodynamics}}
+
+\vspace{2em}
+{\large Tobias Graf\\ Dominik Grodt\\ Sascha Bachmann}
+
+\vspace{9em}
+{\large Projektdokumentation zur Veranstaltung\\ Parallele Algorithmen mit OpenCL\\ SoSe 2013}
+
+
+
+\end{center}
+\end{titlepage}
+
+\tableofcontents
+
+\input{0_Einleitung_Dominik}
+\input{1_Programmstruktur_Dominik}
+\input{2_SPH_Physik_Sascha}
+\input{3_SPH_Implementation_Dominik}
+\input{4_Visualisierung_MarchingCubes_Allgemein_Tobias}
+\input{5_Visualisierung_MarchingCubes_Details_Sascha}
+\input{6_Visualisierung_DeferredShading_Tobias}
+
+\begin{thebibliography}{}
+
+\bibitem{BO}
+M.\ Mustermann,
+{\em SPH}.
+
+\end{thebibliography}
+
+\end{document}
