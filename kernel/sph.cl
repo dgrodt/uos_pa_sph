@@ -275,8 +275,7 @@ const int BUFFER_SIZE_DEPTH
 
 
 kernel void sph_resetSurfaceRho(
-global int* surface_grid_rho,
-global int* COUNT
+global int* surface_grid_rho
 )
 {
 	uint id_x = get_global_id(0);
@@ -285,8 +284,6 @@ global int* COUNT
 	uint gridSize = get_global_size(0);
 	
 	surface_grid_rho[id_x + gridSize * id_y + gridSize * gridSize * id_z] = 0;
-	
-	COUNT[0] = 0;
 }
 
 
@@ -697,14 +694,11 @@ constant int confVertex[] = {0,3,8,							//1
 							};
 
 
-
-kernel void sph_CalcNewSurface2(
+kernel void sph_CalcNewSurface1point5(
 global float* surface_Pos,
-global float* surface_grid_normals,
-global int* surface_Ind,
 const int gridSize,
 global int* surface_grid_rho,
-global int* COUNT,
+global int* surface_cubes,
 const float m,
 const float h,
 const float r
@@ -712,27 +706,77 @@ const float r
 {
 	float4 tw = (float4)(r,0,0,0);
 	int t = (int)(W(&tw, h) * m * 10000000000);
-	int Cnt;
 	
 	int id_x = get_global_id(0);
 	int id_y = get_global_id(1);
 	int id_z = get_global_id(2);
 
-	int rho[8] = {};
-	for (int i = 0; i < 8; i++) {
-
-		rho[i] = surface_grid_rho[id_x + verts[i].x + gridSize * (id_y + verts[i].y) + gridSize * gridSize * (id_z + verts[i].z)];
+	int sum = 0;
+	
+	for (int x = 0; x < 2; x++)
+	{
+		for (int y = 0; y < 2; y++)
+		{
+			for (int z = 0; z < 2; z++)
+			{
+				if (surface_grid_rho[id_x + x + gridSize * (id_y + y) + gridSize * gridSize * (id_z + z)] > t)
+				{
+					sum++;
+				}
+			}
+		}
 	}
+	
+	if (sum != 0 && sum != 8)
+	{
+		surface_cubes[id_x + gridSize * id_y + gridSize * gridSize * id_z] = 1;
+	}
+	else
+	{
+		surface_cubes[id_x + gridSize * id_y + gridSize * gridSize * id_z] = 0;
+	}
+}
 
-	//--------------------------------------
-	//		calculate code
-	//--------------------------------------
+
+kernel void sph_CalcNewSurface2(
+global float* surface_Pos,
+global float* surface_grid_normals,
+global int* surface_Ind,
+const int gridSize,
+global int* surface_grid_rho,
+const float m,
+const float h,
+const float r,
+global int* surface_cubes
+)
+{
+	int id = get_global_id(0);
+	
+	//-----------------------------------------------
+	//		determine cube coordinates
+	//-----------------------------------------------
+	
+	int cube_id = surface_cubes[id];
+	int id_x = (cube_id % (gridSize * gridSize)) % gridSize;
+	int id_y = (cube_id % (gridSize * gridSize)) / gridSize;
+	int id_z = cube_id / (gridSize * gridSize);
+
+	float4 tw = (float4)(r,0,0,0);
+	int t = (int)(W(&tw, h) * m * 10000000000);
+
+	int rho[8] = {};
+
+	//-----------------------------------------------
+	//		get densities and calculate code
+	//-----------------------------------------------
 
 	int c = 0;
 	int cnt = 0;
 	int power = 1;
 	
 	for (int i = 0; i < 8; i++) {
+	
+		rho[i] = surface_grid_rho[id_x + verts[i].x + gridSize * (id_y + verts[i].y) + gridSize * gridSize * (id_z + verts[i].z)];
 	
 		if (rho[i] > t) {
 			c += power;
@@ -741,9 +785,9 @@ const float r
 		power *= 2;
 	}
 
-	//--------------------------------------
+	//-----------------------------------------------
 	//		calculate edges and normals
-	//--------------------------------------
+	//-----------------------------------------------
 
 	float3 edges[12] = {
 						/*(float3) (0, -1, -1),
@@ -790,35 +834,33 @@ const float r
 		normals[i] = (1-s) * normal1 + s * normal2;
 	}
 	
-	//--------------------------------------
+	//-----------------------------------------------
 	//		set Vertex- and IndexBuffer
-	//--------------------------------------
+	//-----------------------------------------------
 	
 	
 	if (case_map[9 * c] != 0) {
 		
 		int i = case_map[9 * c];
 		
-		Cnt = atomic_inc(COUNT);
-		
 		for (int j = confVertex_id[i]; j < confVertex_id[i + 1]; j++) {
 			
 			int l = j - confVertex_id[i];
 			
-			surface_Pos[6 * (12 * Cnt + l)] = edges[confVertex[j]].x; 
-			surface_Pos[6 * (12 * Cnt + l) + 1] = edges[confVertex[j]].y;
-			surface_Pos[6 * (12 * Cnt + l) + 2] = edges[confVertex[j]].z;
+			surface_Pos[6 * (12 * id + l)] = edges[confVertex[j]].x; 
+			surface_Pos[6 * (12 * id + l) + 1] = edges[confVertex[j]].y;
+			surface_Pos[6 * (12 * id + l) + 2] = edges[confVertex[j]].z;
 			
-			surface_Pos[6 * (12 * Cnt + l) + 3] = normals[confVertex[j]].x; 
-			surface_Pos[6 * (12 * Cnt + l) + 4] = normals[confVertex[j]].y;
-			surface_Pos[6 * (12 * Cnt + l) + 5] = normals[confVertex[j]].z;
+			surface_Pos[6 * (12 * id + l) + 3] = normals[confVertex[j]].x; 
+			surface_Pos[6 * (12 * id + l) + 4] = normals[confVertex[j]].y;
+			surface_Pos[6 * (12 * id + l) + 5] = normals[confVertex[j]].z;
 		}
 
 		if(cnt <= 4 || i > 14)
 		{
 			for (int j = confIndex_id[i]; j < confIndex_id[i + 1]; j++) {
 				int l = j - confIndex_id[i];
-				surface_Ind[15 * Cnt + l] = 12 * Cnt + confIndex[j];
+				surface_Ind[15 * id + l] = 12 * id + confIndex[j];
 			}
 		}
 		else 
@@ -826,7 +868,7 @@ const float r
 			int a = 0;
 			for (int j = confIndex_id[i + 1] -1; j >= confIndex_id[i]; j--) {
 				int l = j - confIndex_id[i];
-				surface_Ind[15 * Cnt + a] =  12 * Cnt + confIndex[j];
+				surface_Ind[15 * id + a] =  12 * id + confIndex[j];
 				a++;
 			}
 		}
