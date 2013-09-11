@@ -7,8 +7,50 @@
 
 \bigskip
 
-Text...
+Da der Fokus der Veranstaltung auf der Nebenläufigkeit der zu implementierenden Algorithmen und auf OpenCL liegt, werden im Folgenden die technischen Aspekte der Implementation erörtert. Dabei wird zuerst die zugrundeliegende Datenstruktur erläutert und darauf folgend die Umsetzung der oben dargestellten Berechnungen mittels OpenCL.
 
 \subsection{Datenstruktur und Neighboring Search}
+Im allgemeinen Fall müssen zur Berechnung des neuen Zustands eines Partikels alle anderen simulierten Partikel einbezogen werden. Dazu müssen allerdings $\mathcal O(n^2)$ Berechnungen durchgeführt werden, was, vor allem durch die Tatsache, dass Partikelsysteme dieser Art mit steigender Partikelzahl genauere Ergebnisse liefern, schnell zu Performanceproblemen führen kann.\\
+Aus diesem Grunde musste eine Möglichkeit gefunden werden, die Zahl der Interaktionsberechnungen zu reduzieren, ohne die Genauigkeit zu vermindern. Von verschiedenen diskutierten und implementierten Ansätzen hat sich der folgende durchgesetzt, wobei die weiteren, nicht weiterverfolgten, Ansätze ebenfalls im weiteren Verlauf kurz skizziert werden.
+\subsection{Speicherung und Sortierung der Partikelindices in einem vierdimensionalen Array}
+Hierbei wird der zur Verfügung stehende Raum mithilfe eines dreidimensionalen Grids diskretisiert und die vierte Dimension dazu genutzt, die Indices aller Partikel innerhalb einer Zelle dieses Grids zu speichern. Dazu wird bei der Programminitialisierung ein - eindimensionales, aber im Kernel als vierdimensional addressiertes - Array angelegt, welches es einem Work Item ermöglicht, die Indices der Partikel in den umliegenden Zellen abzurufen und somit auf die Attribute dieser Partikel mithilfe der entsprechenden Buffer zuzugreifen.\\
+In Abbildung~\ref{fig:datenstruktur_grid} wird die Datenstruktur für den dreidimensionalen Fall dargestellt, wobei die dritte Dimension alle in einer Zelle vorhandenen Partikel enthält.\\
+\begin{figure}
+  \centering
+    \input{images/datenstruktur_grid}
+  \caption{Schematische Datenstruktur}
+  \label{fig:datenstruktur_grid}
+\end{figure}
+Bei der Erstellung und Nutzung des Arrays gibt es zwei Herangehensweisen, den vorhandenen Platz zu nutzen. Zum Einen ist es möglich, die Länge des Arrays exakt der Anzahl an Partikeln gleichzusetzen, wodurch nur der unbedingt benötigte Speicherplatz benutzt wird. Dies hätte allerdings zur Folge, dass in jedem Zeitschritt die Elemente des Arrays neu sortiert werden müssten, da die Anzahl an Partikeln innerhalb einer Zelle schwanken kann. Da sich gezeigt hat, dass bei der vorhandenen Grafikkarte die zur Verfügung stehende Leistung eine größere Rolle spielt als der Speicherplatz, wurde ein statischer Ansatz gewählt, bei dem beim Programmstart ein überdimensioniertes Array angelegt wird. Dazu wird jeder Zelle Platz für eine bestimmte Anzahl an Partikeln eingeräumt, unabhängig davon ob dieser Platz benötigt wird. Auf diese Weise entfällt der Sortiervorgang in jedem Zeitschritt, da der Speicherplatz für die einzelnen Partikel bereits vorhanden ist, und der Aufwand, das Grid stets im aktuellen Zustand zu behalten, reduziert sich auf zwei atomic functions, um die Indices ohne Seiteneffekte zu speichern. Abbildung~\ref{fig:datenstruktur_eintraege} zeigt ein Beispiel für die vierte Dimension dieses Grids, wobei der erste Eintrag die Anzahl an validen Folgeeinträgen speichert, um die Zahl an Zugriffen zu minimieren.
+\begin{figure}
+  \centering
+    \input{images/datenstruktur_eintraege}
+  \caption{Beispielhafte vierte Dimension der Datenstruktur}
+  \label{fig:datenstruktur_eintraege}
+\end{figure}
+
+\begin{minipage}{\linewidth}
+\begin{lstlisting}[caption=Iteration über benachbarte Partikel, label=lst:grid_for]
+int4 gridPos = convert_int4((BUFFER_SIZE_SIDE - 1) * (body_Pos[id] + (float4)1) / 2);
+for (int l = max(gridPos.x - OFFSET, 0); l <= min(gridPos.x + OFFSET, BUFFER_SIZE_SIDE - 1) ; l++) {
+	for (int j = max(gridPos.y - OFFSET, 0); j <= min(gridPos.y + OFFSET, BUFFER_SIZE_SIDE - 1) ; j++) {
+		for (int k = max(gridPos.z - OFFSET, 0); k <= min(gridPos.z + OFFSET, BUFFER_SIZE_SIDE - 1) ; k++) {
+			int cnt_ind = BUFFER_SIZE_DEPTH * (l + BUFFER_SIZE_SIDE * j + BUFFER_SIZE_SIDE * BUFFER_SIZE_SIDE * k);
+			uint cnt = data[cnt_ind];			
+			for (int o = 1; o <= cnt; o++) {
+				int i = data[cnt_ind + o];
+				...
+			}
+		}
+	}
+}
+\end{lstlisting}
+\end{minipage}
+
+Mithilfe dieses Arrays lässt sich nun, zu sehen in Code~\ref{lst:grid_for}, über alle benachbarten Partikel iterieren. Die Konstante \texttt{BUFFER_SIZE_SIDE} gibt dabei die Anzahl an Zellen für jede der ersten drei Dimensionen an und \texttt{BUFFER_SIZE_DEPTH} der reservierte Platz für Partikel innerhalb einer Zelle, also die vierte Dimension, wobei mithilfe von \texttt{OFFSET} der gewünschte Radius um die betrachtete Zelle festgelegt wird.\\
+
+Alle diese Konstanten können unabhängig von der Partikelzahl gewählt werden, mit Ausnahme von \texttt{BUFFER_SIZE_DEPTH}. Ist diese Konstante zu gering, könnte der verfügbare Speicherplatz überlaufen bei zu vielen Partikeln innerhalb einer Zelle. Sollte dieser Fall eintreten, werden alle nachfolgenden Partikel dieser Zelle nicht gespeichert, und werden bei den folgenden Nachbarschaftsberechnungen dementsprechend solange nicht berücksichtigt, bis sie wieder einen Platz finden.\\
+Als \textit{guter} Wert für \texttt{BUFFER_SIZE_DEPTH} hat sich \sqrt(n) bewiesen, wobei auch zu geringe Werte, die einen Überlauf induzieren, vor allem bei einer hohen Partikelanzahl erst spät zu Veränderungen in der Simulation führen, da nur einzelne Partikel davon betroffen sind.\\
+Wenn man davon ausgeht, dass \sqrt(n) ein guter Wert für \texttt{BUFFER_SIZE_DEPTH} sei, dann hat die Schleife, die über die benachbarten Partikel iteriert, eine Laufzeit von $\mathcal O(\sqrt(n))$ im worst-case. Dadurch verbessert sich die asymptotische Laufzeit des gesamten Algorithmus auf $\mathcal O(n * \sqrt(n))$.
 \subsection{OpenCL und Parallelisierung}
 
