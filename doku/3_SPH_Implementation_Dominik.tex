@@ -60,4 +60,13 @@ Die Grundidee hierbei ist, für die Partikelindices statt einem vierdimensionale
 Bei diesem Ansatz sollte die Laufzeit verringert werden, indem die zur Kräfteberechnung herangezogenen Partikel einer zufällig ausgewählten und echten Teilmenge aller Partikel entstammen. Bei einer entsprechend gewählten Größe dieser Teilmenge konnte diese außerdem im lokalen Speicher abgelegt werden, um die Laufzeit weiter zu reduzieren.\\
 Es hat sich allerdings gezeigt, dass die Genauigkeit der Simulation durch diesen Ansatz signifikant verschlechtert wurde, sodass er - trotz überragend schneller Laufzeit - wieder verworfen wurde.
 \subsection{OpenCL und Parallelisierung}
-
+Wie bei einem herkömmlichen n-Body-System können auch bei dieser Simulation die Zustandsberechnungen der einzelnen Partikel unabhängig von den jeweils anderen durchgeführt werden. Da die Berechnungen allerdings von den Zuständen der anderen Partikel abhängen, welche wiederum ebenfalls einen neuen Zustand errechnen, muss mithilfe von Synchronisation sichergestellt werden, dass keine ungewünschten Seiteneffekte durch teilweise modifizierte Daten entstehen.\\
+Da sich die Partikel aufgrund ihrer stetigen Bewegung und damit wechselnden Abhängigkeiten nicht sinnvoll mithilfe von Work Groups aufteilen ließen, wurden die Teilschritte der Berechnung in einzelne Kernel ausgelagert die auf diese Weise global synchronisiert werden können.\\
+Der grundlegende Ablauf ist hierbei in Abbildung~\ref{fig:simulation_kernelablauf} zu erkennen. Für die Berechnung eines neuen Geschwindigkeitsvektors \texttt{V} werden sowohl Druck $\rho$  als auch Dichte \texttt{P} des Partikels benötigt, welche wiederum voneinander und von anderen Partikeln abhängen. Aus diesem Grunde wird zuerst $\rho$ für alle Partikel berechnet, damit, nach einem Synchronisationspunkt, \texttt{P} mithilfe von $\rho$ berechnet werden kann. \\
+Der Synchronisationspunkt nach der Berechnung der neuen Geschwindigkeit hat keine technische Grundlage, da die neue Position des Partikels nur von den eigenen Attributen ahängig ist, wurde aber zwecks Profiling eingeführt.
+\begin{figure}
+  \centering
+    \input{images/simulation_kernelablauf}
+  \caption{Reihenfolge der Kernel mit Synchronisationspunkten}
+  \label{fig:simulation_kernelablauf}
+\end{figure}
