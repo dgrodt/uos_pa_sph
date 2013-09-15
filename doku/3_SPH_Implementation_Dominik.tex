@@ -7,8 +7,66 @@
 
 \bigskip
 
-Text...
+Da der Fokus der Veranstaltung auf der Nebenläufigkeit der zu implementierenden Algorithmen und auf OpenCL liegt, werden im Folgenden die technischen Aspekte der Implementation erörtert. Dabei wird zuerst die zugrundeliegende Datenstruktur erläutert und darauf folgend die Umsetzung der oben dargestellten Berechnungen mittels OpenCL.
 
 \subsection{Datenstruktur und Neighboring Search}
-\subsection{OpenCL und Parallelisierung}
+Im allgemeinen Fall müssen zur Berechnung des neuen Zustands eines Partikels alle anderen simulierten Partikel einbezogen werden. Dazu müssen allerdings $\mathcal O(n^2)$ Berechnungen durchgeführt werden, was, vor allem durch die Tatsache, dass Partikelsysteme dieser Art mit steigender Partikelzahl genauere Ergebnisse liefern, schnell zu Performanceproblemen führen kann.\\
+Aus diesem Grunde musste eine Möglichkeit gefunden werden, die Zahl der Interaktionsberechnungen zu reduzieren, ohne die Genauigkeit zu vermindern. Von verschiedenen diskutierten und implementierten Ansätzen hat sich der folgende durchgesetzt, wobei die weiteren, nicht weiterverfolgten, Ansätze ebenfalls im weiteren Verlauf kurz skizziert werden.
+\subsection{Speicherung und Sortierung der Partikelindices in einem vierdimensionalen Array}
+Hierbei wird der zur Verfügung stehende Raum mithilfe eines dreidimensionalen Grids diskretisiert und die vierte Dimension dazu genutzt, die Indices aller Partikel innerhalb einer Zelle dieses Grids zu speichern. Dazu wird bei der Programminitialisierung ein - eindimensionales, aber im Kernel als vierdimensional addressiertes - Array angelegt, welches es einem Work Item ermöglicht, die Indices der Partikel in den umliegenden Zellen abzurufen und somit auf die Attribute dieser Partikel mithilfe der entsprechenden Buffer zuzugreifen.\\
+In Abbildung~\ref{fig:datenstruktur_grid} wird die Datenstruktur für den dreidimensionalen Fall dargestellt, wobei die dritte Dimension alle in einer Zelle vorhandenen Partikel enthält.\\
+\begin{figure}
+  \centering
+    \input{images/datenstruktur_grid}
+  \caption{Schematische Datenstruktur}
+  \label{fig:datenstruktur_grid}
+\end{figure}
+Bei der Erstellung und Nutzung des Arrays gibt es zwei Herangehensweisen, den vorhandenen Platz zu nutzen. Zum Einen ist es möglich, die Länge des Arrays exakt der Anzahl an Partikeln gleichzusetzen, wodurch nur der unbedingt benötigte Speicherplatz benutzt wird. Dies hätte allerdings zur Folge, dass in jedem Zeitschritt die Elemente des Arrays neu sortiert werden müssten, da die Anzahl an Partikeln innerhalb einer Zelle schwanken kann. Da sich gezeigt hat, dass bei der vorhandenen Grafikkarte die zur Verfügung stehende Leistung eine größere Rolle spielt als der Speicherplatz, wurde ein statischer Ansatz gewählt, bei dem beim Programmstart ein überdimensioniertes Array angelegt wird. Dazu wird jeder Zelle Platz für eine bestimmte Anzahl an Partikeln eingeräumt, unabhängig davon ob dieser Platz benötigt wird. Auf diese Weise entfällt der Sortiervorgang in jedem Zeitschritt, da der Speicherplatz für die einzelnen Partikel bereits vorhanden ist, und der Aufwand, das Grid stets im aktuellen Zustand zu behalten, reduziert sich auf zwei atomic functions, um die Indices ohne Seiteneffekte zu speichern. Abbildung~\ref{fig:datenstruktur_eintraege} zeigt ein Beispiel für die vierte Dimension dieses Grids, wobei der erste Eintrag die Anzahl an validen Folgeeinträgen speichert, um die Zahl an Zugriffen zu minimieren.
+\begin{figure}
+  \centering
+    \input{images/datenstruktur_eintraege}
+  \caption{Beispielhafte vierte Dimension der Datenstruktur}
+  \label{fig:datenstruktur_eintraege}
+\end{figure}
 
+\begin{minipage}{\linewidth}
+\begin{lstlisting}[caption=Iteration über benachbarte Partikel, label=lst:grid_for]
+int4 gridPos = convert_int4((BUFFER_SIZE_SIDE - 1) * (body_Pos[id] + (float4)1) / 2);
+for (int l = max(gridPos.x - OFFSET, 0); l <= min(gridPos.x + OFFSET, BUFFER_SIZE_SIDE - 1) ; l++) {
+	for (int j = max(gridPos.y - OFFSET, 0); j <= min(gridPos.y + OFFSET, BUFFER_SIZE_SIDE - 1) ; j++) {
+		for (int k = max(gridPos.z - OFFSET, 0); k <= min(gridPos.z + OFFSET, BUFFER_SIZE_SIDE - 1) ; k++) {
+			int cnt_ind = BUFFER_SIZE_DEPTH * (l + BUFFER_SIZE_SIDE * j + BUFFER_SIZE_SIDE * BUFFER_SIZE_SIDE * k);
+			uint cnt = data[cnt_ind];			
+			for (int o = 1; o <= cnt; o++) {
+				int i = data[cnt_ind + o];
+				...
+			}
+		}
+	}
+}
+\end{lstlisting}
+\end{minipage}
+
+Mithilfe dieses Arrays lässt sich nun, zu sehen in Code~\ref{lst:grid_for}, über alle benachbarten Partikel iterieren. Die Konstante \texttt{BUFFER\_SIZE\_SIDE} gibt dabei die Anzahl an Zellen für jede der ersten drei Dimensionen an und \texttt{BUFFER\_SIZE\_DEPTH} der reservierte Platz für Partikel innerhalb einer Zelle, also die vierte Dimension, wobei mithilfe von \texttt{OFFSET} der gewünschte Radius um die betrachtete Zelle festgelegt wird.
+
+
+Alle diese Konstanten können unabhängig von der Partikelzahl gewählt werden, mit Ausnahme von \texttt{BUFFER\_SIZE\_DEPTH}. Ist diese Konstante zu gering, könnte der verfügbare Speicherplatz überlaufen bei zu vielen Partikeln innerhalb einer Zelle. Sollte dieser Fall eintreten, werden alle nachfolgenden Partikel dieser Zelle nicht gespeichert, und werden bei den folgenden Nachbarschaftsberechnungen dementsprechend solange nicht berücksichtigt, bis sie wieder einen Platz finden.\\
+Als \textit{guter} Wert für \texttt{BUFFER\_SIZE\_DEPTH} hat sich $\sqrt(n)$ bewiesen, wobei auch zu geringe Werte, die einen Überlauf induzieren, vor allem bei einer hohen Partikelanzahl erst spät zu Veränderungen in der Simulation führen, da nur einzelne Partikel davon betroffen sind.\\
+Wenn man davon ausgeht, dass $\sqrt(n)$ ein guter Wert für \texttt{BUFFER\_SIZE\_DEPTH} sei, dann hat die Schleife, die über die benachbarten Partikel iteriert, eine Laufzeit von $\mathcal O(\sqrt(n))$ im worst-case. Dadurch verbessert sich die asymptotische Laufzeit des gesamten Algorithmus' auf $\mathcal O(n \cdot \sqrt(n))$.
+\subsection{Speicherung der Partikelindices in einer dreidimensionalen Textur}
+Dieser Ansatz wurde nur diskutiert, da die vorhergehende Herangehensweise bereits zufriedenstellende Ergebnisse lieferte.\\
+Die Grundidee hierbei ist, für die Partikelindices statt einem vierdimensionalen Array eine dreidimensionale Textur zu verwenden, wobei eigentlichen Indices - vorher abgelegt in der vierten Dimension - nun in den vier Farbkanälen der Textur codiert werden müssen. Da diese Kanäle nur begrenzten Platz zur Verfügung stellen, müsste die Textur tendenziell höher aufgelöst sein als das Grid beim vorigen Ansatz, um einen Überlauf zu vermeiden. Dadurch würde zweifellos ein erhöhter Aufwand entstehen, der aber, so die Idee, dennoch zu einer schnelleren Laufzeit führen könnte aufgrund des internen Cachings durch die Grafikkarte. Da sich die Partikel allerdings stets bewegen, müssten die gespeicherten Indices in jedem Zeitschritt modifiziert werden, was effizientem Caching entgegenwirkt. Die Frage, ob dieser Ansatz effizienter als der vorhergehende ist, lässt sich also auf die Frage, ob das Caching bei erhöhtem Lesezugriff und gleichbleibendem Schreibzugriff zu einer schnelleren Laufzeit führt als bei herkömmlichen globalen Speicher, abbilden. Da die Antwort unklar und somit der Gewinn durch diesen Ansatz in Frage gestellt wurde, wurde er verworfen.
+\subsection{Zufallsbasierte Selektion einer Referenzmenge}
+Bei diesem Ansatz sollte die Laufzeit verringert werden, indem die zur Kräfteberechnung herangezogenen Partikel einer zufällig ausgewählten und echten Teilmenge aller Partikel entstammen. Bei einer entsprechend gewählten Größe dieser Teilmenge konnte diese außerdem im lokalen Speicher abgelegt werden, um die Laufzeit weiter zu reduzieren.\\
+Es hat sich allerdings gezeigt, dass die Genauigkeit der Simulation durch diesen Ansatz signifikant verschlechtert wurde, sodass er - trotz überragend schneller Laufzeit - wieder verworfen wurde.
+\subsection{OpenCL und Parallelisierung}
+Wie bei einem herkömmlichen n-Body-System können auch bei dieser Simulation die Zustandsberechnungen der einzelnen Partikel unabhängig von den jeweils anderen durchgeführt werden. Da die Berechnungen allerdings von den Zuständen der anderen Partikel abhängen, welche wiederum ebenfalls einen neuen Zustand errechnen, muss mithilfe von Synchronisation sichergestellt werden, dass keine ungewünschten Seiteneffekte durch teilweise modifizierte Daten entstehen.\\
+Da sich die Partikel aufgrund ihrer stetigen Bewegung und damit wechselnden Abhängigkeiten nicht sinnvoll mithilfe von Work Groups aufteilen ließen, wurden die Teilschritte der Berechnung in einzelne Kernel ausgelagert die auf diese Weise global synchronisiert werden können.\\
+Der grundlegende Ablauf ist hierbei in Abbildung~\ref{fig:simulation_kernelablauf} zu erkennen. Für die Berechnung eines neuen Geschwindigkeitsvektors \texttt{V} werden sowohl Druck $\rho$  als auch Dichte \texttt{P} des Partikels benötigt, welche wiederum voneinander und von anderen Partikeln abhängen. Aus diesem Grunde wird zuerst $\rho$ für alle Partikel berechnet, damit, nach einem Synchronisationspunkt, \texttt{P} mithilfe von $\rho$ berechnet werden kann. \\
+Der Synchronisationspunkt nach der Berechnung der neuen Geschwindigkeit hat keine technische Grundlage, da die neue Position des Partikels nur von den eigenen Attributen ahängig ist, wurde aber zwecks Profiling eingeführt.
+\begin{figure}
+  \centering
+    \input{images/simulation_kernelablauf}
+  \caption{Reihenfolge der Kernel mit Synchronisationspunkten}
+  \label{fig:simulation_kernelablauf}
+\end{figure}

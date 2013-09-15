@@ -7,4 +7,13 @@
 
 \bigskip
 
-Text...
+Die oben genannte Aufteilung des Projekts in Simulation und Visualisation findet sich auch in der implementierten Programmstruktur wieder. Einen groben Überblick darüber und über den Ablauf bietet Abbildung~\ref{fig:programmstruktur}.\\
+\begin{figure}
+  \centering
+    \input{images/programmstruktur}
+  \caption{Vereinfachte Programmstruktur}
+  \label{fig:programmstruktur}
+\end{figure}
+Lässt man das Host-Programm außer Acht, da es neben den Metafunktionalitäten Initialisierung und Organisation keine substanziellen Funktionen zu der Wassersimulation beiträgt, besteht das Programm also aus den drei Teilen \textit{Zustandsberechnung}, \textit{Oberflächengenerierung} und \textit{Darstellung}. \\
+Sowohl die Zustandsberechnung als auch die Oberflächengenerierung wurden mithilfe von OpenCL implementiert und werden, da die entsprechenden Kernel in dieselbe geordnete Warteschlange eingereiht werden, streng sequentiell ausgeführt. Die Darstellung hingegen wurde mithilfe von OpenGL umgesetzt und wird tendenziell jeweils nach den OpenCL-Berechnungen ausgeführt, allerdings wird dieses Verhalten nicht vom Host-Programm forciert.\\
+Getreu der dargestellten Trennung wird im weiteren Verlauf dieser Ausarbeitung in Kapitel~\ref{chap:sph} auf die Simulation und in Kapitel~\ref{chap:visualisierung} auf die Visualisierung näher eingegangen.
