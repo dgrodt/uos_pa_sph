@@ -10,10 +10,10 @@ float4 gradW (float4* r, float h) {
 	float x = fast_length(*r);
 	float k = 45 / (3.14159 * h*h*h*h*h*h);
 	if (x > h || x == 0) return (float4)0;
-	return k * ((h-x)*(h-x)*(h-x)) * (*r) / x;
+	return k * (h-x) * (h-x) * (*r) / x;
 }
 
-float4 gradWV (float4* r, float h) {
+float divWV (float4* r, float h) {
 	float x = fast_length(*r);
 	float k = 45 / (3.14159 * h*h*h*h*h*h);
 	if (x > h || x == 0) return 0;
@@ -104,11 +104,8 @@ const int OFFSET
 				for (int o = 1; o <= cnt; o++) 
 				{
 					int i = data[cnt_ind + o];
-					if (i!=id)
-					{
-						float4 w = pos-body_Pos[i];
-						rhoByM += W(&w, h);
-					}
+					float4 w = pos-body_Pos[i];
+					rhoByM += W(&w, h);
 				}
 			}
 		}
@@ -183,7 +180,7 @@ const float nu
 					if (id!=i) 
 					{
 						float4 r = pos-body_Pos[i];	
-						a_V += -nu  * (V - body_V[i]) * gradWV(&r, h) / rho;
+						a_V += -nu  * (V - body_V[i]) * divWV(&r, h) / rho;
 						float4 grad = gradW(&r, h);	
 						float C = (body_P[i] + P)/(2 * rho);
 						a_P += C * grad;
