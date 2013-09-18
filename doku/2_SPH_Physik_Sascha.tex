@@ -39,18 +39,18 @@ Wählt man nun einen fixen, nahe bei $0$ gelegenen Wert für den Parameter $h$, 
 \[
 G(r) \approx \int G(s)w(r - s, h) ds.
 \]
-Es sei hier bereits angemerkt, dass die Genauigkeit und Stabilität des finalen Simulations-Algorithmus entscheidend von der Wahl geeigneter Glättungs-Kernel abhängt. Welche Glättungs-Kernel in diesem Projekt verwendet wurden, wird an späterer Stelle erläutert.
+Es sei hier bereits angemerkt, dass die Genauigkeit und Stabilität des finalen Simula\-tions-Algorithmus entscheidend von der Wahl geeigneter Glättungs-Kernel abhängt. Welche Glättungs-Kernel in diesem Projekt verwendet wurden, wird an späterer Stelle erläutert.
 \medskip
 
 \noindent In einem weiteren Approximationsschritt teilt man nun die gesamte Masse auf $n$ Partikel auf, die jeweils eine Position $r_i$, eine Masse $m_i$ und eine Dichte $\rho_i$ besitzen. Dann lässt sich obiges Integral annähern durch
 \[
 G(r) \approx \sum_{i=1}^n\frac{m_i}{\rho_i} G(r_i)w(r - r_i, h).
 \]
-Dieses Approximations-Prinzip stellt den Ausgangspunkt zur näherungsweisen Lösung der oben angesprochenen Differentialgleichungen dar, welche die Physik einer Flüssigkeit beschreiben. Details zum weiteren Vorgehen bei der Lösung dieser Gleichungen sowie die damit verbundenen Rechnungen werden in dieser Arbeit nicht präsentiert. Der interessierte Leser kann hierzu zum Beispiel in \cite{IntroSPH} und auch in \cite{FlowSPH} weiterlesen.
+Dieses Approximations-Prinzip stellt den Ausgangspunkt zur näherungsweisen Lö\-sung der oben angesprochenen Differentialgleichungen dar, welche die Physik einer Flüssigkeit beschreiben. Details zum weiteren Vorgehen bei der Lösung dieser Gleichungen sowie die damit verbundenen Rechnungen werden in dieser Arbeit nicht präsentiert. Der interessierte Leser kann hierzu zum Beispiel in \cite{IntroSPH} und auch in \cite{FlowSPH} weiterlesen.
 
 
 \subsection*{Dichte}
-Im Folgenden werden die für den finalen Simulations-Algorithmus benötigten Gleichungen vorgestellt. Der erste Schritt in jeder Simulationsiteration ist die Berechnung der Dichte für jeden Partikel. Nach dem oben vorgestellten Approximations-Prinzip ergibt sich direkt
+Im Folgenden werden die für den finalen Simulations-Algorithmus benö\-tigten Gleichungen vorgestellt. Der erste Schritt in jeder Simulationsiteration ist die Berechnung der Dichte für jeden Partikel. Nach dem oben vorgestellten Approxima\-tions-Prinzip ergibt sich direkt
 \begin{align}\label{density}
 \rho_j = \sum_{i=1}^n m_i w(r_j - r_i, h)
 \end{align}
@@ -79,7 +79,7 @@ Die innere Reibung der Flüssigkeit wird durch die Viskositäts-Kräfte beschrie
 \begin{align}\label{viscosity}
 F_j^{Visk} = \nu \sum_{i=0}^n \frac{m_i}{\rho_i} (v_i - v_j) \nabla_j^2 w(r_j - r_i, h)
 \end{align}
-verwendet. Hierbei bezeichnet $\nu$ einen Viskositäts-Faktor, der vor der Simulation geeignet gewählt werden muss.
+verwendet. Hierbei bezeichnet $\nu$ einen Viskositäts-Faktor, der vor der Simula\-tion geeignet gewählt werden muss.
 
 \subsection*{Wände}
 Die Interaktion der Flüssigkeits-Partikel mit soliden Wänden wird modelliert durch Kräfte, die einen Partikel immer dann von einer Wand zurückstoßen, wenn ein vorgegebener Mindestabstand zur Wand unterschritten wird. Diese Vorgehensweise ist Teil einer Methode, die in \cite{BoundarySPH} beschrieben wird. Zur Berechnung der Wand-Kräfte wird die Gleichung
@@ -114,7 +114,7 @@ berechnet (vgl. \cite[S. 157]{FluidSim}).
 
 
 \subsection*{Simulations-Algorithmus}
-Zusammenfassend wird nun noch einmal der vollständige Algorithmus zur Simulation der Partikel-Bewegungen dargestellt. Es wird vorgegeben, dass alle Partikel die gleiche Masse $m$ besitzen. Außerdem wird die Gravitation sinnvollerweise durch eine konstante Beschleunigung $g$ in $-y$-Richtung modelliert. Die Vorgehensweise in jedem Iterationsschritt lässt sich nun folgendermaßen beschrieben:
+Zusammenfassend wird nun noch einmal der voll\-ständige Algorithmus zur Simulation der Partikel-Bewegungen dargestellt. Es wird vorgegeben, dass alle Partikel die gleiche Masse $m$ besitzen. Außerdem wird die Gravitation sinnvollerweise durch eine konstante Beschleunigung $g$ in $-y$-Richtung modelliert. Die Vorgehensweise in jedem Iterationsschritt lässt sich nun folgendermaßen beschrieben:
 \begin{enumerate}
 \item Berechnung der Dichte für jeden Partikel mittels Gleichung \ref{density}
 \item Berechnung des Drucks für jeden Partikel mittels Gleichung \ref{eos}
