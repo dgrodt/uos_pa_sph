@@ -1,6 +1,6 @@
+
 \chapter{Der SPH Algorithmus}
 \thispagestyle{empty}
-\label{chap:sph}
 
 \section{Physikalischer Hintergrund}
 
@@ -11,8 +11,9 @@
 \bigskip
 
 \noindent Die nachfolgenden Ausführungen folgen den Darstellungen in \cite{IntroSPH}, \cite{FlowSPH}, \cite{FluidSim} und \cite{BoundarySPH}. \emph{Smoothed Particle Hydrodynamics (SPH)} ist eine Methode, mit deren Hilfe die Lösung physikalischer Gas- und Flüssigkeits-Gleichungen numerisch approximiert werden kann. Eine Flüssigkeit (oder auch ein Gas) wird beschrieben, indem jedem Punkt im Raum zu jedem Zeitpunkt eine Reihe physikalischer Größen zugeordnet wird. Beispielsweise besitzt jeder Punkt einer Flüssigkeit zu jedem Zeitpunkt eine bestimmte Dichte, Temperatur, Geschwindigkeit etc. Diese Größen sind miteinander durch diverse (Differential-) Gleichungen verknüpft. Gelingt es, diese Gleichungen (zumindest approximativ) zu lösen, so lässt sich die Bewegung der Flüssigkeit über die Zeit beschreiben. Die verschiedenen Variationen der SPH-Methode, die sich in der Literatur finden, sind gekennzeichnet durch ein bestimmtes Approximations-Prinzip, welches im folgenden Abschnitt erläutert wird.
+\medskip
 
-\subsection*{Approximationsprizip} Die Ausführungen in diesem Punk folgen der Darstellung in \cite[S. 89 f]{IntroSPH}. Wir betrachten eine physikalische Größe $G(r)$, die für jeden Punkt $r$ im interessierenden Raum definiert sei. Dann kann diese Größe geschrieben werden als
+\subsubsection*{Approximationsprizip} Die Ausführungen in diesem Punk folgen der Darstellung in \cite[S. 89 f]{IntroSPH}. Wir betrachten eine physikalische Größe $G(r)$, die für jeden Punkt $r$ im interessierenden Raum definiert sei. Dann kann diese Größe geschrieben werden als
 \begin{align}\label{eqn1}
 G(r) = \int G(s)\delta(r - s) ds,
 \end{align}
@@ -39,18 +40,18 @@ Wählt man nun einen fixen, nahe bei $0$ gelegenen Wert für den Parameter $h$, 
 \[
 G(r) \approx \int G(s)w(r - s, h) ds.
 \]
-Es sei hier bereits angemerkt, dass die Genauigkeit und Stabilität des finalen Simula\-tions-Algorithmus entscheidend von der Wahl geeigneter Glättungs-Kernel abhängt. Welche Glättungs-Kernel in diesem Projekt verwendet wurden, wird an späterer Stelle erläutert.
+Es sei hier bereits angemerkt, dass die Genauigkeit und Stabilität des finalen Simulations-Algorithmus entscheidend von der Wahl geeigneter Glättungs-Kernel abhängt. Welche Glättungs-Kernel in diesem Projekt verwendet wurden, wird an späterer Stelle erläutert.
 \medskip
 
 \noindent In einem weiteren Approximationsschritt teilt man nun die gesamte Masse auf $n$ Partikel auf, die jeweils eine Position $r_i$, eine Masse $m_i$ und eine Dichte $\rho_i$ besitzen. Dann lässt sich obiges Integral annähern durch
 \[
 G(r) \approx \sum_{i=1}^n\frac{m_i}{\rho_i} G(r_i)w(r - r_i, h).
 \]
-Dieses Approximations-Prinzip stellt den Ausgangspunkt zur näherungsweisen Lö\-sung der oben angesprochenen Differentialgleichungen dar, welche die Physik einer Flüssigkeit beschreiben. Details zum weiteren Vorgehen bei der Lösung dieser Gleichungen sowie die damit verbundenen Rechnungen werden in dieser Arbeit nicht präsentiert. Der interessierte Leser kann hierzu zum Beispiel in \cite{IntroSPH} und auch in \cite{FlowSPH} weiterlesen.
+Dieses Approximations-Prinzip stellt den Ausgangspunkt zur näherungsweisen Lösung der oben angesprochenen Differentialgleichungen dar, welche die Physik einer Flüssigkeit beschreiben. Details zum weiteren Vorgehen bei der Lösung dieser Gleichungen sowie die damit verbundenen Rechnungen werden in dieser Arbeit nicht präsentiert. Der interessierte Leser kann hierzu zum Beispiel in \cite{IntroSPH} und auch in \cite{FlowSPH} weiterlesen.
+\medskip
 
-
-\subsection*{Dichte}
-Im Folgenden werden die für den finalen Simulations-Algorithmus benö\-tigten Gleichungen vorgestellt. Der erste Schritt in jeder Simulationsiteration ist die Berechnung der Dichte für jeden Partikel. Nach dem oben vorgestellten Approxima\-tions-Prinzip ergibt sich direkt
+\subsubsection*{Dichte}
+Im Folgenden werden die für den finalen Simulations-Algorithmus benötigten Gleichungen vorgestellt. Der erste Schritt in jeder Simulationsiteration ist die Berechnung der Dichte für jeden Partikel. Nach dem oben vorgestellten Approximations-Prinzip ergibt sich direkt
 \begin{align}\label{density}
 \rho_j = \sum_{i=1}^n m_i w(r_j - r_i, h)
 \end{align}
@@ -59,13 +60,14 @@ für die Dichte $\rho_j$ des Partikels $j$ (vgl. \cite[S. 90]{IntroSPH}). Die Gl
 \frac{d\rho_j}{dt} = \sum_{i = 0}^n m_i (v_j-v_i) \cdot \nabla_j w(r_j - r_i, h)
 \]
 liefert eine zweite Möglichkeit, die Dichte zu berechnen (vgl. \cite[S. 91]{IntroSPH} und \cite[S. 400]{FlowSPH}). Hierbei bezeichnet $v_i$ die Geschwindigkeit des Partikels $i$. Eine Herleitung der Gleichung findet sich in der angegebenen Literatur. Beide Möglichkeiten wurden implementiert, wobei die Ergebnisse der ersten Variante überzeugender waren.
+\medskip
 
-\subsection*{Druck}
+\subsubsection*{Druck}
 Um die Dichte eines jeden Partikels in einen Druck $P_j$ zu überführen, wird die Gleichung
 \begin{align}\label{eos}
 P_j = \kappa\cdot\left(\left(\frac{\rho_j}{\rho_0}\right)^7 - 1\right)
 \end{align}
-verwendet, welche in der Literatur mit \emph{equation of state} bezeichnet wird (vgl. \cite[S. 401]{FlowSPH}). Der Faktor $\kappa$ und die initiale Dichte $\rho_0$ sind dabei abhängig von der modellierten Flüssigkeit und im Vorfeld der Simulation geeignet zu wählen. Weicht nun während der Simulation die Dichte eines Partikels nach unten von der initialen Dichte $\rho_0$ ab, dann resultiert daraus ein Unterdruck (negativer Druck), weicht die Dichte nach oben ab, so ergibt sich ein Überdruck (positiver Druck).
+verwendet, welche in der Literatur mit \emph{equation of state} bezeichnet wird (vgl. \cite[S. 401]{FlowSPH}). Der Faktor $\kappa$ und die initiale Dichte $\rho_0$ sind dabei abhängig von der modellierten Flüssigkeit und im Vorfeld der Simulation zu wählen. Weicht nun während der Simulation die Dichte eines Partikels nach unten von der initialen Dichte $\rho_0$ ab, dann resultiert daraus ein Unterdruck, weicht die Dichte nach oben ab, so ergibt sich ein Überdruck.
 \medskip
 
 \noindent Ausgehend vom Druck eines jeden Partikels lassen sich im nächsten Schritt die Druck-Kräfte berechnen. Hierzu finden sich in der Literatur mehrere Ansätze. In diesem Projekt wurde zur Berechnung der Druck-Kräfte die Gleichung
@@ -73,22 +75,25 @@ verwendet, welche in der Literatur mit \emph{equation of state} bezeichnet wird 
 F_j^{Druck} = -\sum_{i=1}^n m_i \frac{P_j + P_i}{2\rho_i} \nabla_j w(r_j - r_i, h)
 \end{align}
 verwendet, welche in \cite[S. 156]{FluidSim} vorgeschlagen wird.
+\medskip
 
-\subsection*{Viskosität}
+\subsubsection*{Viskosität}
 Die innere Reibung der Flüssigkeit wird durch die Viskositäts-Kräfte beschrieben. Um diese Kräfte zu modellieren, wird die in \cite[S. 156]{FluidSim} beschriebene Gleichung
 \begin{align}\label{viscosity}
 F_j^{Visk} = \nu \sum_{i=0}^n \frac{m_i}{\rho_i} (v_i - v_j) \nabla_j^2 w(r_j - r_i, h)
 \end{align}
-verwendet. Hierbei bezeichnet $\nu$ einen Viskositäts-Faktor, der vor der Simula\-tion geeignet gewählt werden muss.
+verwendet. Hierbei bezeichnet $\nu$ einen Viskositäts-Faktor, der vor der Simulation geeignet gewählt werden muss.
+\medskip
 
-\subsection*{Wände}
+\subsubsection*{Wände}
 Die Interaktion der Flüssigkeits-Partikel mit soliden Wänden wird modelliert durch Kräfte, die einen Partikel immer dann von einer Wand zurückstoßen, wenn ein vorgegebener Mindestabstand zur Wand unterschritten wird. Diese Vorgehensweise ist Teil einer Methode, die in \cite{BoundarySPH} beschrieben wird. Zur Berechnung der Wand-Kräfte wird die Gleichung
 \begin{align}\label{boundary}
 F_j^{Wand} = m_j\frac{d - a}{{\Delta t}^2} \mathfrak{n}
 \end{align}
 verwendet (vgl. \cite[Gleichung 26]{BoundarySPH}). Hierbei bezeichnet $d$ den vorgegebenen Mindestabstand, $a$ den Abstand des Partikels $j$ zur betrachteten Wand und $\mathfrak{n}$ den Normalen-Vektor, der von der betrachteten Wand in Richtung des Partikels $j$ zeigt. Außerdem bezeichnet $\Delta t$ den Zeitschritt der Simulation.
+\medskip
 
-\subsection*{Kernel}
+\subsubsection*{Kernel}
 Die in diesem Projekt verwendeten Glättungs-Kernel wurden vorgeschlagen in \cite{FluidSim}. Zur Dichte-Berechnung (Gleichung \ref{density}) wird der Kernel
 \[
 w(r,h) = \begin{cases}
@@ -111,10 +116,10 @@ w(r,h) = \begin{cases}
 \end{cases}
 \]
 berechnet (vgl. \cite[S. 157]{FluidSim}).
+\medskip
 
-
-\subsection*{Simulations-Algorithmus}
-Zusammenfassend wird nun noch einmal der voll\-ständige Algorithmus zur Simulation der Partikel-Bewegungen dargestellt. Es wird vorgegeben, dass alle Partikel die gleiche Masse $m$ besitzen. Außerdem wird die Gravitation sinnvollerweise durch eine konstante Beschleunigung $g$ in $-y$-Richtung modelliert. Die Vorgehensweise in jedem Iterationsschritt lässt sich nun folgendermaßen beschrieben:
+\subsubsection*{Simulations-Algorithmus}
+Zusammenfassend wird nun noch einmal der vollständige Algorithmus zur Simulation der Partikel-Bewegungen dargestellt. Es wird vorgegeben, dass alle Partikel die gleiche Masse $m$ besitzen. Außerdem wird die Gravitation sinnvollerweise durch eine konstante Beschleunigung $g$ in $-y$-Richtung modelliert. Die Vorgehensweise in jedem Iterationsschritt lässt sich nun folgendermaßen beschrieben:
 \begin{enumerate}
 \item Berechnung der Dichte für jeden Partikel mittels Gleichung \ref{density}
 \item Berechnung des Drucks für jeden Partikel mittels Gleichung \ref{eos}
