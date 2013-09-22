@@ -15,14 +15,15 @@ Aus diesem Grunde musste eine Möglichkeit gefunden werden, die Zahl der Interak
 \subsubsection{Speicherung und Sortierung der Partikelindices in einem vierdimensionalen Array}
 Hierbei wird der zur Verfügung stehende Raum mithilfe eines dreidimensionalen Grids diskretisiert und die vierte Dimension dazu genutzt, die Indices aller Partikel innerhalb einer Zelle dieses Grids zu speichern. Dazu wird bei der Programminitialisierung ein - eindimensionales, aber im Kernel als vierdimensional addressiertes - Array angelegt, welches es einem Work Item ermöglicht, die Indices der Partikel in den umliegenden Zellen abzurufen und somit auf die Attribute dieser Partikel mithilfe der entsprechenden Buffer zuzugreifen.\\
 In Abbildung~\ref{fig:datenstruktur_grid} wird die Datenstruktur für den dreidimensionalen Fall dargestellt, wobei die dritte Dimension alle in einer Zelle vorhandenen Partikel enthält.\\
-\begin{figure}
+\begin{figure}[h]
   \centering
     \input{images/datenstruktur_grid}
   \caption{Schematische Datenstruktur}
   \label{fig:datenstruktur_grid}
 \end{figure}
-Bei der Erstellung und Nutzung des Arrays gibt es zwei Herangehensweisen, den vorhandenen Platz zu nutzen. Zum Einen ist es möglich, die Länge des Arrays exakt der Anzahl an Partikeln gleichzusetzen, wodurch nur der unbedingt benötigte Speicherplatz benutzt wird. Dies hätte allerdings zur Folge, dass in jedem Zeitschritt die Elemente des Arrays neu sortiert werden müssten, da die Anzahl an Partikeln innerhalb einer Zelle schwanken kann. Da sich gezeigt hat, dass bei der vorhandenen Grafikkarte die zur Verfügung stehende Leistung eine größere Rolle spielt als der Speicherplatz, wurde ein statischer Ansatz gewählt, bei dem beim Programmstart ein überdimensioniertes Array angelegt wird. Dazu wird jeder Zelle Platz für eine bestimmte Anzahl an Partikeln eingeräumt, unabhängig davon ob dieser Platz benötigt wird. Auf diese Weise entfällt der Sortiervorgang in jedem Zeitschritt, da der Speicherplatz für die einzelnen Partikel bereits vorhanden ist, und der Aufwand, das Grid stets im aktuellen Zustand zu behalten, reduziert sich auf eine atomic function, um die Indices ohne Seiteneffekte zu speichern. Abbildung~\ref{fig:datenstruktur_eintraege} zeigt ein Beispiel für die vierte Dimension dieses Grids, wobei der erste Eintrag die Anzahl an validen Folgeeinträgen speichert, um die Zahl der Zugriffe zu minimieren.
-\begin{figure}
+
+\noindent Bei der Erstellung und Nutzung des Arrays gibt es zwei Herangehensweisen, den vorhandenen Platz zu nutzen. Zum Einen ist es möglich, die Länge des Arrays exakt der Anzahl an Partikeln gleichzusetzen, wodurch nur der unbedingt benötigte Speicherplatz benutzt wird. Dies hätte allerdings zur Folge, dass in jedem Zeitschritt die Elemente des Arrays neu sortiert werden müssten, da die Anzahl an Partikeln innerhalb einer Zelle schwanken kann. Da sich gezeigt hat, dass bei der vorhandenen Grafikkarte die zur Verfügung stehende Leistung eine größere Rolle spielt als der Speicherplatz, wurde ein statischer Ansatz gewählt, bei dem beim Programmstart ein überdimensioniertes Array angelegt wird. Dazu wird jeder Zelle Platz für eine bestimmte Anzahl an Partikeln eingeräumt, unabhängig davon ob dieser Platz benötigt wird. Auf diese Weise entfällt der Sortiervorgang in jedem Zeitschritt, da der Speicherplatz für die einzelnen Partikel bereits vorhanden ist, und der Aufwand, das Grid stets im aktuellen Zustand zu behalten, reduziert sich auf eine atomic function, um die Indices ohne Seiteneffekte zu speichern. Abbildung~\ref{fig:datenstruktur_eintraege} zeigt ein Beispiel für die vierte Dimension dieses Grids, wobei der erste Eintrag die Anzahl an validen Folgeeinträgen speichert, um die Zahl der Zugriffe zu minimieren.
+\begin{figure}[h]
   \centering
     \input{images/datenstruktur_eintraege}
   \caption{Beispielhafte vierte Dimension der Datenstruktur}
@@ -64,7 +65,7 @@ Wie bei einem herkömmlichen n-Body-System können auch bei dieser Simulation di
 Da sich die Partikel aufgrund ihrer stetigen Bewegung und damit wechselnden Abhängigkeiten nicht sinnvoll mithilfe von Work Groups aufteilen ließen, wurden die Teilschritte der Berechnung in einzelne Kernel ausgelagert, die auf diese Weise global synchronisiert werden können.\\
 Der grundlegende Ablauf ist hierbei in Abbildung~\ref{fig:simulation_kernelablauf} zu erkennen. Für die Berechnung eines neuen Geschwindigkeitsvektors \texttt{V} werden sowohl Druck $\rho$  als auch Dichte \texttt{P} des Partikels benötigt, welche wiederum voneinander und von anderen Partikeln abhängen. Aus diesem Grunde wird zuerst $\rho$ für alle Partikel berechnet, damit, nach einem Synchronisationspunkt, \texttt{P} mithilfe von $\rho$ berechnet werden kann. \\
 Der Synchronisationspunkt nach der Berechnung der neuen Geschwindigkeit hat keine technische Grundlage, da die neue Position des Partikels nur von den eigenen Attributen ahängig ist, wurde aber zwecks Profiling eingeführt.
-\begin{figure}
+\begin{figure}[h]
   \centering
     \input{images/simulation_kernelablauf}
   \caption{Reihenfolge der Kernel mit Synchronisationspunkten}
