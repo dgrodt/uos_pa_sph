@@ -664,7 +664,7 @@ constant int confVertex[] = {0,3,8,							//1
 							0,8,3,9,5,4,1,2,11,7,6,10,		//13
 							0,1,5,10,8,6,					//14
 							
-							// additional cases to cope with ambiguity (reduce number of holes in surface)
+							// additional configurations to reduce number of gaps in surface
 							8,2,3,11,1,0,					
 							9,5,8,3,1,11,6,
 							3,10,6,0,5,9,1,2,11,
@@ -684,7 +684,7 @@ constant int confVertex[] = {0,3,8,							//1
 							  0,1,2,3,4,5,6,7,8,9,10,11,			
 							  0,1,2,0,2,3,0,3,4,3,2,5,
 			
-							// additional cases to cope with ambiguity (reduce number of holes in surface)
+							// additional configurations to reduce number of gaps in surface
 							  0,1,2,0,3,1,0,4,3,0,5,4,
 							  0,1,2,2,1,3,4,3,5,3,6,5,1,6,3,
 							  2,1,0,3,2,0,4,2,3,5,4,3,6,7,8						

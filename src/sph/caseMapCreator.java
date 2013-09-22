@@ -7,9 +7,6 @@ public class caseMapCreator
     	int[] case_map = new int[256 * 9];
     	
     	int current_case = 0;
-    	int CntX = 0;
-    	int CntY = 0;
-    	int CntZ = 0;
     	
     	int[] verts = {0,0,0,
     				   1,0,0,
@@ -73,7 +70,7 @@ public class caseMapCreator
 					
 					int newVert = x + 2 * y + 4 * z; 
     				
-    				if (bit == 1){  //((cube & (1 << l)) >> l == 1) {
+    				if (bit == 1){
     				
     					newCube += Math.pow(2,map[newVert]);
     				}
@@ -102,7 +99,7 @@ public class caseMapCreator
 						
 						int newVert = x + 2 * y + 4 * z; 
     					
-    					if (bit == 1){  //((cube & (1 << l)) >> l == 1) {
+    					if (bit == 1){
     						
     						newCube += Math.pow(2,map[newVert]);
     					}
@@ -131,7 +128,7 @@ public class caseMapCreator
 							
 							int newVert = x + 2 * y + 4 * z;
     						
-    						if (bit == 1){  //((cube & (1 << l)) >> l == 1) {
+    						if (bit == 1){
     							
     							newCube += Math.pow(2,map[newVert]);
     						}
@@ -147,15 +144,17 @@ public class caseMapCreator
     					
     					int[] cases = {0, 1, 3, 5, 65, 50, 67, 74, 51, 177, 105, 113, 58, 165, 178};
 
-    					int current_CntX = (i+1)%4;
-    					int current_CntY = (j+1)%4;
-    					int current_CntZ = (k+1)%4;
-
     					for (int c = 0; c < 15; c++) {
     							
 							if (cube == cases[c]) {
-									
+								
 								current_case = c;
+								
+								if (BITS > 4) {
+									if (c == 3) current_case = 15;
+									if (c == 6) current_case = 16;
+									if (c == 7) current_case = 17;
+								}
 								
 								for (int l = 0; l < 8; l++) {
 									current_permutation[l] = permutation[l];	
